@@ -1,15 +1,9 @@
 # Talladega custom domain
 
-The reunion site is published at https://talladega-family-reunion.p5v5vhhkmv.chatgpt.site.
+https://talladega.murphsmitts.com is served by **Cloudflare Pages**, connected to the GitHub repository. Pushes to `main` deploy automatically.
 
-For the Cloudflare zone **murphsmitts.com**, add the following records. Names below are relative to that zone. Keep the CNAME **DNS only** while validating the hostname. TTL can remain Auto.
+The `talladega` record in the Cloudflare zone **murphsmitts.com** was created by the Pages project's **Custom domains** setting (October 10, 2026). Manage it from the Pages project rather than editing DNS directly.
 
-| Type | Name | Content |
-| --- | --- | --- |
-| CNAME | talladega | custom-domains.chatgpt.site |
-| TXT | _openai-site-verification.talladega | openai-site-verification=AO7TXrEq6UQMC4Fp7T-qEGajpx_AXLKut5_GJmpAPaE |
-| TXT | _cf-custom-hostname.talladega | a5796f83-7bd3-4629-84f0-f8b1ba0bb516 |
+## History
 
-All three records were added and verified in Cloudflare on October 10, 2026. DNS uses Auto TTL and the CNAME is DNS only. Hosting validation is complete: the TLS certificate for talladega.murphsmitts.com was issued October 10, 2026 (expires January 8, 2027) and the domain serves the site.
-
-Desired URL: https://talladega.murphsmitts.com
+The site was first published on ChatGPT Sites (https://talladega-family-reunion.p5v5vhhkmv.chatgpt.site), using a CNAME to `custom-domains.chatgpt.site` plus two TXT records for verification: `_openai-site-verification.talladega` and `_cf-custom-hostname.talladega`. Those records are no longer needed and can be deleted.
