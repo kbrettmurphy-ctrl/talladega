@@ -6,6 +6,18 @@ const esc=(s)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':
 const photoTypes=['image/jpeg','image/png','image/webp'];
 const blankTrip={start:'',camp:'',sites:'',notes:''};
 
+// Older iPhones (iOS before 15.4) have no <dialog> or crypto.randomUUID; give them minimal stand-ins.
+if(!crypto.randomUUID)crypto.randomUUID=()=>'10000000-1000-4000-8000-100000000000'.replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
+if(typeof HTMLDialogElement!=='function'||!HTMLDialogElement.prototype.showModal){
+  document.documentElement.classList.add('no-dialog');
+  for(const d of document.querySelectorAll('dialog')){
+    Object.defineProperty(d,'open',{get(){return this.hasAttribute('open');}});
+    d.showModal=function(){this.setAttribute('open','');};
+    d.close=function(){if(this.hasAttribute('open')){this.removeAttribute('open');this.dispatchEvent(new Event('close'));}};
+  }
+  document.addEventListener('keydown',(e)=>{if(e.key==='Escape')document.querySelectorAll('dialog[open]').forEach(d=>d.close());});
+}
+
 let year=new Date().getFullYear(),years=[],records=[],token=localStorage.getItem('reunion-session')||'',loadingSequence=0,lastLoad=0;
 let me=readJSON('reunion-me');
 let albumYear=null,albumRecords=[],albumSequence=0,viewerIndex=-1,viewerShirt=false;
@@ -120,7 +132,7 @@ function sheet({title,body,save:saveLabel='Save',cancel='Cancel',onSave,danger})
   $$('[data-close]',d).forEach(b=>b.onclick=()=>d.close());
   form.onsubmit=(e)=>{e.preventDefault();run($('.strong',form),async()=>{if(await onSave(form)!==false)d.close();});};
   if(danger)$('[data-danger]',form).onclick=(e)=>run(e.currentTarget,async()=>{if(await danger.run(form)!==false)d.close();});
-  if(!d.open)d.showModal();
+  if(!d.open){d.showModal();setTimeout(()=>d.getAnimations?.().forEach(a=>a.finish()),600);}
   $('.sheet-body',d).scrollTop=0;
   return form;
 }
@@ -432,7 +444,7 @@ async function unlock(){
   years=await api('years');if(years.length&&!years.includes(year))year=years[0];
   albumYear=year;await load();
   document.body.classList.remove('locked');applyTheme();showPage();
-  if(!me)setTimeout(whoSheet,350);
+  if(!me)setTimeout(()=>{window.scrollTo(0,0);if(!me&&!document.body.classList.contains('locked'))whoSheet();},700);
 }
 
 // ---------- Events ----------
@@ -470,7 +482,7 @@ $('#export-shirts').onclick=()=>{
 
 const composer=$('#composer'),grow=()=>{const t=composer.elements.text;t.style.height='auto';t.style.height=Math.min(t.scrollHeight,160)+'px';};
 composer.elements.text.addEventListener('input',grow);
-composer.elements.text.addEventListener('keydown',(e)=>{if(e.key==='Enter'&&!e.shiftKey&&matchMedia('(pointer: fine)').matches){e.preventDefault();composer.requestSubmit();}});
+composer.elements.text.addEventListener('keydown',(e)=>{if(e.key==='Enter'&&!e.shiftKey&&matchMedia('(pointer: fine)').matches){e.preventDefault();if(composer.requestSubmit)composer.requestSubmit();else composer.dispatchEvent(new Event('submit',{cancelable:true}));}});
 composer.onsubmit=(e)=>{
   e.preventDefault();const text=composer.elements.text.value.trim();if(!text)return;
   if(!me){whoSheet();return;}
@@ -502,7 +514,7 @@ $('#login-form').onsubmit=(e)=>{
     const result=await api('login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:$('#login-password').value})});
     token=result.token;
     if($('#remember').checked)localStorage.setItem('reunion-session',token);else localStorage.removeItem('reunion-session');
-    $('#login-password').value='';
+    $('#login-password').value='';$('#login-password').blur();
     await unlock();
   });
 };

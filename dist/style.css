@@ -217,8 +217,14 @@ input[type=file]::file-selector-button{margin-right:10px;padding:6px 12px;border
 .sheet-intro{padding:0 16px;color:var(--label-2);font-size:15px}
 .sheet-body .segmented{margin:0}
 
+/* Stand-in for browsers without <dialog> (iOS before 15.4) */
+.no-dialog dialog:not([open]){display:none}
+.no-dialog dialog[open]{position:fixed;z-index:100}
+.no-dialog .sheet[open]{top:auto;right:0;bottom:0;left:0;margin:0 auto;box-shadow:0 0 0 100vmax rgba(0,0,0,.4)}
+.no-dialog .viewer[open]{top:0;left:0}
+
 /* Toast */
-#toast{display:none;position:fixed;inset:auto 0 calc(24px + env(safe-area-inset-bottom));z-index:50;width:fit-content;max-width:calc(100% - 32px);height:auto;margin:0 auto;padding:12px 18px;border:0;border-radius:14px;background:rgba(36,36,38,.94);color:#fff;font-size:15px;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+#toast{display:none;position:fixed;inset:auto 0 calc(24px + env(safe-area-inset-bottom));z-index:200;width:fit-content;max-width:calc(100% - 32px);height:auto;margin:0 auto;padding:12px 18px;border:0;border-radius:14px;background:rgba(36,36,38,.94);color:#fff;font-size:15px;box-shadow:0 8px 30px rgba(0,0,0,.25)}
 #toast.visible{display:block}
 
 /* Sign-in */
