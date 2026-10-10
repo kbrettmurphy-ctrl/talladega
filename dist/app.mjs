@@ -8,7 +8,7 @@ const blankTrip={start:'',camp:'',sites:'',notes:''};
 
 let year=new Date().getFullYear(),years=[],records=[],token=localStorage.getItem('reunion-session')||'',loadingSequence=0,lastLoad=0;
 let me=readJSON('reunion-me');
-let albumYear=null,albumRecords=[],albumSequence=0,viewerIndex=-1;
+let albumYear=null,albumRecords=[],albumSequence=0,viewerIndex=-1,viewerShirt=false;
 const photoURLs=new Map(),readyURLs=new Map();
 let weatherCache,weatherSequence=0;
 
@@ -35,7 +35,21 @@ const trip=()=>dataOf('trip')[0]||blankTrip;
 const people=()=>dataOf('person').sort((a,b)=>a.family.localeCompare(b.family)||a.name.localeCompare(b.name));
 const crews=()=>[...new Set([...dataOf('person').map(p=>p.family),...dataOf('meal').map(m=>m.family),me?.crew])].filter(Boolean).sort((a,b)=>a.localeCompare(b));
 const isMe=(name)=>!!me&&String(name).trim().toLowerCase()===me.name.trim().toLowerCase();
-const albumPhotos=()=>dataOf('photo',albumRecords).sort((a,b)=>(b.created||'').localeCompare(a.created||''));
+const albumPhotos=()=>dataOf('photo',albumRecords).filter(p=>!p.shirt).sort((a,b)=>(b.created||'').localeCompare(a.created||''));
+const shirtPlan=()=>dataOf('shirt')[0]||{color:'',hex:'',photo:'',notes:''};
+const shirtPhoto=()=>{const id=shirtPlan().photo;return id?dataOf('photo').find(p=>p.id===id):null;};
+const viewerList=()=>viewerShirt?[shirtPhoto()].filter(Boolean):albumPhotos();
+const viewerYear=()=>viewerShirt?year:albumYear;
+// Accepts #RGB, #RRGGBB, or "r, g, b" (0-255) and returns #RRGGBB, or '' when it can't be read.
+function parseColor(input){
+  const v=String(input).trim();
+  let m=v.match(/^#?([0-9a-f]{6})$/i);if(m)return '#'+m[1].toUpperCase();
+  m=v.match(/^#?([0-9a-f])([0-9a-f])([0-9a-f])$/i);if(m)return '#'+(m[1]+m[1]+m[2]+m[2]+m[3]+m[3]).toUpperCase();
+  m=v.match(/^(?:rgb\s*\()?\s*(\d{1,3})\s*[, ]\s*(\d{1,3})\s*[, ]\s*(\d{1,3})\s*\)?$/i);
+  if(m&&m.slice(1).every(n=>+n<=255))return '#'+m.slice(1).map(n=>(+n).toString(16).padStart(2,'0')).join('').toUpperCase();
+  return '';
+}
+const rgbOf=(hex)=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)).join(', ');
 
 // ---------- Appearance ----------
 const darkQuery=matchMedia('(prefers-color-scheme: dark)');
@@ -156,12 +170,35 @@ function personSheet(id){
 }
 
 function shirtSheet(){
-  const plan=dataOf('shirt')[0]||{};
-  sheet({title:`${year} shirt`,body:`<div class="list">
-      <label class="field"><span>Color</span><input name="color" maxlength="100" value="${esc(plan.color)}" placeholder="e.g. Royal blue"></label>
+  const plan=shirtPlan(),current=shirtPhoto();
+  const form=sheet({title:`${year} shirt`,body:`<div class="list">
+      <label class="field"><span>Color name</span><input name="color" maxlength="100" value="${esc(plan.color)}" placeholder="e.g. Safety orange"></label>
+      <div class="field"><span>Exact color</span><input name="hex" maxlength="20" value="${esc(plan.hex)}" placeholder="#FF6A13 or 255, 106, 19" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Color code"><input type="color" class="swatch-input" value="${esc(plan.hex||'#0A6CFF')}" aria-label="Pick a color"></div>
     </div>
+    <p class="group-foot" data-color-note></p>
+    <div class="group"><div class="list">
+      ${current?`<div class="row shirt-photo-row"><img class="shirt-thumb" alt="Current shirt photo" data-shirt-thumb><span class="row-main">Current photo</span><label class="row-switch">Remove <input type="checkbox" name="removePhoto" class="switch"></label></div>`:''}
+      <label class="field"><span>${current?'Replace photo':'Shirt photo'}</span><input name="photo" type="file" accept="image/jpeg,image/png,image/webp"></label>
+    </div><p class="group-foot">A mockup, a sample, or last year’s shirt. JPEG, PNG, or WebP up to 10 MB.</p></div>
     <div class="group"><div class="list"><label class="field stack"><span>Design and order notes</span><textarea name="notes" maxlength="3000" placeholder="Design idea, order deadline, printer…">${esc(plan.notes)}</textarea></label></div></div>`,
-    onSave:(f)=>save('shirt',Object.fromEntries(new FormData(f)))});
+    onSave:async(f)=>{
+      const typed=f.elements.hex.value.trim(),hex=typed?parseColor(typed):'';
+      if(typed&&!hex)throw new Error('Use a color code like #FF6A13 or RGB numbers like 255, 106, 19.');
+      const file=f.elements.photo.files[0];let photo=plan.photo||'';
+      if(file){
+        if(file.size>10485760||!photoTypes.includes(file.type))throw new Error('Use a JPEG, PNG, or WebP photo under 10 MB.');
+        const body=new FormData();body.append('file',file);body.append('caption',`${year} shirt`);body.append('purpose','shirt');
+        photo=(await api('upload',{method:'POST',body})).id||'';
+      }else if(f.elements.removePhoto?.checked)photo='';
+      await save('shirt',{color:f.elements.color.value,hex,photo,notes:f.elements.notes.value});
+      if(plan.photo&&plan.photo!==photo)await remove(plan.photo).then(load).catch(()=>{});
+    }});
+  const text=form.elements.hex,picker=$('.swatch-input',form),noteEl=$('[data-color-note]',form);
+  const sync=()=>{const hex=parseColor(text.value);if(hex)picker.value=hex.toLowerCase();noteEl.textContent=!text.value.trim()?'Tap the swatch to pick, or type a hex code or RGB numbers.':hex?`${hex} · RGB ${rgbOf(hex)}`:'Not a color code yet.';};
+  text.addEventListener('input',sync);
+  picker.addEventListener('input',()=>{text.value=picker.value.toUpperCase();sync();});
+  sync();
+  if(current)photoURL(current.id,year).then(url=>{const img=$('[data-shirt-thumb]',form);if(img)img.src=url;}).catch(()=>{});
 }
 
 function yearSheet(){
@@ -247,7 +284,7 @@ function renderOverview(){
   $('#hero-action').hidden=!!t.start;
   $('#trip-list').innerHTML=row({title:'Arrival',value:days?shortDate(days[0]):'Not set'})+row({title:'Departure',value:days?shortDate(days[3]):'—'})+row({title:'Campground',value:t.camp||'Not set'})+row({title:'Sites',value:t.sites||'Not set'})+(t.notes?row({title:'Notes',sub:t.notes}):'');
   const ps=dataOf('person'),meals=dataOf('meal'),slots=days?mealSlots(t.start):[],claimed=slots.filter(s=>meals.some(m=>m.slot===s.id&&m.family)).length,needed=ps.filter(p=>!p.size).length;
-  const msgs=dataOf('message').sort((a,b)=>b.created.localeCompare(a.created)),photos=dataOf('photo');
+  const msgs=dataOf('message').sort((a,b)=>b.created.localeCompare(a.created)),photos=dataOf('photo').filter(p=>!p.shirt);
   const glance=(href,icon,title,value,sub='')=>`<a class="row nav" href="${href}"><span class="row-icon ${icon}">${icons[icon]}</span><span class="row-main"><span class="row-title">${title}</span>${sub?`<span class="row-sub one-line">${esc(sub)}</span>`:''}</span><span class="row-value">${esc(value)}</span></a>`;
   $('#glance').innerHTML=glance('#meals','meals','Meals',days?`${claimed} of ${slots.length} claimed`:'Set dates')
     +glance('#people','people','People',plural(ps.length,'person','people'))
@@ -273,7 +310,7 @@ async function renderWeather(){
       const i=d.time.indexOf(date);
       if(i<0)return row({title:format(date,{weekday:'long'}),sub:'Not in the forecast yet'});
       const [emoji,text]=weather[d.weather_code[i]]||['🌡️','Mixed'];
-      return `<div class="row"><span class="wx" aria-hidden="true">${emoji}</span><span class="row-main"><span class="row-title">${format(date,{weekday:'long'})}</span><span class="row-sub">${text} · ${d.precipitation_probability_max[i]??'—'}% rain</span></span><span class="row-value temps"><b>${temp(d.temperature_2m_max[i])}</b> ${temp(d.temperature_2m_min[i])}</span></div>`;
+      return `<div class="row"><span class="wx" aria-hidden="true">${emoji}</span><span class="row-main"><span class="row-title">${format(date,{weekday:'long'})}</span><span class="row-sub">${text} · ${d.precipitation_probability_max[i]??'—'}% rain${(Date.parse(date)-Date.parse(now))/86400000>7?' · early estimate':''}</span></span><span class="row-value temps"><b>${temp(d.temperature_2m_max[i])}</b> ${temp(d.temperature_2m_min[i])}</span></div>`;
     }).join('');
   }catch{if(seq===weatherSequence)el.innerHTML=note('Weather is unavailable right now. Your plans are still saved.');}
 }
@@ -296,8 +333,12 @@ function renderRoster(){
 }
 
 function renderShirts(){
-  const plan=dataOf('shirt')[0]||{},ps=people(),totals=shirtTotals(ps),have=ps.filter(p=>p.size).length;
-  $('#shirt-plan').innerHTML=row({title:'Color',value:plan.color||'Not set'})+(plan.notes?row({title:'Notes',sub:plan.notes}):'');
+  const plan=shirtPlan(),ps=people(),totals=shirtTotals(ps),have=ps.filter(p=>p.size).length,pic=shirtPhoto();
+  const swatch=plan.hex?`<span class="swatch" style="background:${plan.hex}"></span>`:'';
+  $('#shirt-plan').innerHTML=(pic?`<button type="button" class="shirt-hero" data-shirt-photo aria-label="View shirt photo"><img alt="${esc(year+' shirt')}" data-shirt-img></button>`:'')
+    +`<div class="row">${swatch}<span class="row-main"><span class="row-title">${esc(plan.color||(plan.hex?'Custom color':'Color not set'))}</span>${plan.hex?`<span class="row-sub">${plan.hex} · RGB ${rgbOf(plan.hex)}</span>`:''}</span></div>`
+    +(plan.notes?row({title:'Notes',sub:plan.notes}):'');
+  if(pic)photoURL(pic.id,year).then(url=>{const img=$('[data-shirt-img]');if(img){img.onload=()=>img.classList.add('ready');img.src=url;}}).catch(()=>{});
   $('#shirt-totals').innerHTML=have?sizes.filter(s=>totals[s]).map(s=>row({title:s,value:'× '+totals[s]})).join('')+row({title:'Total',value:have,cls:'strong-row'}):note('Add people and sizes to build the order.');
   $('#shirt-summary').textContent=ps.length?`${have} of ${ps.length} sizes collected`+(ps.length>have?` · ${ps.length-have} still needed`:''):'';
   $('#size-list').innerHTML=ps.map(p=>`<div class="row"><span class="row-main"><span class="row-title">${esc(p.name)}</span><span class="row-sub">${esc(p.family)}</span></span><select class="${p.size?'':'warn'}" aria-label="Shirt size for ${esc(p.name)}" data-size-for="${esc(p.id)}">${sizeOptions(p.size)}</select></div>`).join('')||note('Everyone’s sizes will show up here.');
@@ -348,20 +389,20 @@ function renderAlbum(loading=false){
   $$('img:not(.ready)',grid).forEach(img=>thumbObserver.observe(img));
 }
 
-function openViewer(i){viewerIndex=i;showViewerPhoto();if(!$('#viewer').open)$('#viewer').showModal();}
+function openViewer(i,shirt=false){viewerIndex=i;viewerShirt=shirt;$('#viewer-delete').hidden=shirt;showViewerPhoto();if(!$('#viewer').open)$('#viewer').showModal();}
 async function showViewerPhoto(){
-  const photos=albumPhotos(),p=photos[viewerIndex];if(!p){$('#viewer').close();return;}
+  const photos=viewerList(),p=photos[viewerIndex],shownYear=viewerYear();if(!p){$('#viewer').close();return;}
   $('#viewer-count').textContent=`${viewerIndex+1} of ${photos.length}`;
   $('#viewer-caption').textContent=p.caption||'';
   $('.viewer .prev').hidden=viewerIndex===0;$('.viewer .next').hidden=viewerIndex===photos.length-1;
   const img=$('#viewer-img'),link=$('#viewer-download');
-  img.alt=p.caption||'Family reunion photo';link.download=`talladega-${albumYear}-${p.id}.${(p.path||'.jpg').split('.').pop()}`;
+  img.alt=p.caption||'Family reunion photo';link.download=`talladega-${shownYear}-${p.id}.${(p.path||'.jpg').split('.').pop()}`;
   const ready=readyURLs.get(p.id);
   if(ready){img.src=ready;link.href=ready;return;}
   img.removeAttribute('src');link.removeAttribute('href');
-  try{const url=await photoURL(p.id,albumYear);if(albumPhotos()[viewerIndex]?.id===p.id){img.src=url;link.href=url;}}catch(e){toast(e.message);}
+  try{const url=await photoURL(p.id,shownYear);if(viewerList()[viewerIndex]?.id===p.id){img.src=url;link.href=url;}}catch(e){toast(e.message);}
 }
-function stepViewer(delta){const next=viewerIndex+delta;if(next>=0&&next<albumPhotos().length){viewerIndex=next;showViewerPhoto();}}
+function stepViewer(delta){const next=viewerIndex+delta;if(next>=0&&next<viewerList().length){viewerIndex=next;showViewerPhoto();}}
 
 // ---------- Navigation ----------
 function showPage(){
@@ -407,6 +448,7 @@ document.addEventListener('click',(e)=>{
   else if('editShirt' in d)shirtSheet();
   else if('addPhotos' in d)uploadSheet();
   else if(d.photo)openViewer(Number(d.photo));
+  else if('shirtPhoto' in d)openViewer(0,true);
   else if(d.albumYear)setAlbumYear(Number(d.albumYear));
   else if(d.deleteMessage){if(confirm('Delete this message for everyone?'))run(t,async()=>{await remove(d.deleteMessage);await load();});}
 });

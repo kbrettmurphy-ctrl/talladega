@@ -1,0 +1,4 @@
+# The browser calls reunion-api without a Supabase JWT; the function checks the family session itself.
+# Keep JWT verification off or every request will be rejected after a deploy.
+[functions.reunion-api]
+verify_jwt = false

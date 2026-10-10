@@ -16,7 +16,7 @@ const sizeNames=['','Youth XS','Youth S','Youth M','Youth L','Youth XL','Adult X
 function clean(kind:string,d:any,year:number){
  if(!d||typeof d!=='object')throw new Error('Missing form data.');
  if(kind==='trip'){const start=text(d.start,10);if(start){const date=new Date(start+'T12:00:00Z');if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||!Number.isFinite(+date)||date.toISOString().slice(0,10)!==start||date.getUTCDay()!==5||date.getUTCFullYear()!==year)throw new Error('Choose a Friday within this reunion year.');}return {start,camp:text(d.camp,100),sites:text(d.sites,100),notes:text(d.notes,3000)};}
- if(kind==='shirt')return {color:text(d.color,100),notes:text(d.notes,3000)};
+ if(kind==='shirt'){const hex=text(d.hex??'',7),photo=text(d.photo??'',80);if(hex&&!/^#[0-9a-fA-F]{6}$/.test(hex))throw new Error('Use a color code like #1A4FD6.');if(!/^[\w-]*$/.test(photo))throw new Error('Invalid photo.');return {color:text(d.color,100),hex:hex.toUpperCase(),photo,notes:text(d.notes,3000)};}
  if(kind==='person'){const size=text(d.size,30);if(!sizeNames.includes(size))throw new Error('Choose a listed shirt size.');return {name:text(d.name,100,true),family:text(d.family,100,true),size,diet:text(d.diet,300)};}
  if(kind==='meal')return {slot:text(d.slot,30,true),family:text(d.family,100),menu:text(d.menu,1000)};
  if(kind==='message')return {author:text(d.author,100,true),text:text(d.text,3000,true),created:new Date().toISOString()};
@@ -81,8 +81,9 @@ Deno.serve(async(req:Request)=>{
    const form=await req.formData();const file=form.get('file');if(!(file instanceof File)||file.size>10485760||file.size===0||!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Choose a JPEG, PNG or WebP photo up to 10 MB.');
    const caption=text(form.get('caption')||'',200);const id=crypto.randomUUID();const path=year+'/'+id+'.'+({'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[file.type]);
    await service('/storage/v1/object/reunion-photos/'+path,{method:'POST',headers:{'Content-Type':file.type},body:file});
-   try{await put(id,year,'photo',{path,caption,created:new Date().toISOString()});}catch(e){await service('/storage/v1/object/reunion-photos',{method:'DELETE',headers:jsonHeaders,body:JSON.stringify({prefixes:[path]})});throw e;}
-   return reply({ok:true});
+   const shirt=form.get('purpose')==='shirt';
+   try{await put(id,year,'photo',{path,caption,created:new Date().toISOString(),...(shirt?{shirt:true}:{})});}catch(e){await service('/storage/v1/object/reunion-photos',{method:'DELETE',headers:jsonHeaders,body:JSON.stringify({prefixes:[path]})});throw e;}
+   return reply({ok:true,id});
   }
   if(action==='photo'&&req.method==='GET'){
    const id=text(url.searchParams.get('id'),80,true);const [row]=await db('reunion_records?year=eq.'+year+'&kind=eq.photo&id=eq.'+encodeURIComponent(id)+'&select=data');if(!row)return reply({error:'Photo not found.'},404);
