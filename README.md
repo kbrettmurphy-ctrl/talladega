@@ -20,7 +20,7 @@ Photos are private and accessed through the authenticated API. Before upload, th
 
 ## Deployment
 
-The site is hosted on **Cloudflare Pages**, connected to this GitHub repository. Every push to `main` publishes `dist/` automatically (no build command; output directory `dist`). `dist/_headers` sets response headers on Cloudflare Pages.
+The site is hosted on **Cloudflare Pages**, connected to this GitHub repository. Every push to `main` publishes `dist/` automatically (no build command; output directory `dist`). `dist/_headers` sets response headers on Cloudflare Pages. The murphsmitts.com zone lets browsers cache `.css` and `.js` files for hours, so `index.html` links the stylesheet as `/style.css?v=<build>`: **whenever `style.css` changes, bump the build value in both the `<meta name="build">` tag and that `?v=`** so phones fetch the new styles right away.
 
 The Edge Function source is `supabase/functions/reunion-api/index.ts`; `supabase/schema.sql` records the initial schema. Tables deny access to anonymous/authenticated browser roles. Only the Edge Function uses the server-side Supabase service credential, after verifying the family session. The function only accepts browser requests from the origins listed in `origins` at the top of that file; serving the site from a new hostname requires adding it there and redeploying the function.
 
