@@ -4,7 +4,7 @@ if(new URLSearchParams(location.search).has('debug'))import('./debug.mjs');
 const endpoint='https://sdfleesxvattrwcsavqc.supabase.co/functions/v1/reunion-api';
 const $=(s,root=document)=>root.querySelector(s), $$=(s,root=document)=>[...root.querySelectorAll(s)];
 const esc=(s)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const photoTypes=['image/jpeg','image/png','image/webp'];
+const photoAccept='image/*,.heic,.heif';
 const blankTrip={start:'',camp:'',sites:'',notes:''};
 
 // Older iPhones (iOS before 15.4) have no <dialog> or crypto.randomUUID; give them minimal stand-ins.
@@ -125,6 +125,45 @@ function bindCrew(form,required=false){
 }
 const crewValue=(f)=>f.elements.crew.value==='__new__'?f.elements.newCrew.value.trim():f.elements.crew.value;
 
+// ---------- Photo preparation ----------
+// Every upload is decoded in the browser, scaled so its long edge is at most 2560 px, and re-encoded as
+// JPEG. That shrinks phone photos to roughly 0.5–1 MB, strips location metadata, and turns HEIC into
+// something every browser can show. Safari reads HEIC itself; other browsers load a converter on demand.
+const maxEdge=2560,jpegQuality=.85,maxSourceBytes=60*1024*1024;
+const isHeic=(file)=>/image\/hei[cf]/i.test(file.type)||/\.hei[cf]$/i.test(file.name);
+let heicConverter;
+function loadHeicConverter(){
+  return heicConverter??=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');script.src='/vendor/heic2any.min.js';
+    script.onload=()=>resolve(window.heic2any);
+    script.onerror=()=>{heicConverter=null;reject(new Error('Couldn’t load the HEIC converter. Check your connection and try again.'));};
+    document.head.append(script);
+  });
+}
+async function decodeImage(blob){
+  if(window.createImageBitmap){try{return await createImageBitmap(blob,{imageOrientation:'from-image'});}catch{}}
+  const img=new Image(),url=URL.createObjectURL(blob);
+  try{img.src=url;await img.decode();return img;}catch{return null;}finally{setTimeout(()=>URL.revokeObjectURL(url),0);}
+}
+async function preparePhoto(file){
+  if(file.size>maxSourceBytes)throw new Error(`${file.name} is too large (over 60 MB).`);
+  let image=await decodeImage(file);
+  if(!image&&isHeic(file)){
+    const heic2any=await loadHeicConverter();
+    const converted=await heic2any({blob:file,toType:'image/jpeg',quality:.92}).catch(()=>null);
+    if(converted)image=await decodeImage(Array.isArray(converted)?converted[0]:converted);
+  }
+  if(!image)throw new Error(`${file.name} isn’t a photo this browser can read.`);
+  const width=image.naturalWidth||image.width,height=image.naturalHeight||image.height,scale=Math.min(1,maxEdge/Math.max(width,height));
+  const canvas=document.createElement('canvas');canvas.width=Math.round(width*scale);canvas.height=Math.round(height*scale);
+  const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);
+  image.close?.();
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',jpegQuality));
+  canvas.width=canvas.height=0;
+  if(!blob)throw new Error(`Couldn’t prepare ${file.name}. Try a different photo.`);
+  return new File([blob],file.name.replace(/\.[^.]+$/,'')+'.jpg',{type:'image/jpeg'});
+}
+
 // ---------- Sheets ----------
 function sheet({title,body,save:saveLabel='Save',cancel='Cancel',onSave,danger}){
   const d=$('#sheet');
@@ -191,16 +230,16 @@ function shirtSheet(){
     <p class="group-foot" data-color-note></p>
     <div class="group"><div class="list">
       ${current?`<div class="row shirt-photo-row"><img class="shirt-thumb" alt="Current shirt photo" data-shirt-thumb><span class="row-main">Current photo</span><label class="row-switch">Remove <input type="checkbox" name="removePhoto" class="switch"></label></div>`:''}
-      <label class="field"><span>${current?'Replace photo':'Shirt photo'}</span><input name="photo" type="file" accept="image/jpeg,image/png,image/webp"></label>
-    </div><p class="group-foot">A mockup, a sample, or last year’s shirt. JPEG, PNG, or WebP up to 10 MB.</p></div>
+      <label class="field"><span>${current?'Replace photo':'Shirt photo'}</span><input name="photo" type="file" accept="${photoAccept}"></label>
+    </div><p class="group-foot">A mockup, a sample, or last year’s shirt. Any photo works, including iPhone HEIC.</p></div>
     <div class="group"><div class="list"><label class="field stack"><span>Design and order notes</span><textarea name="notes" maxlength="3000" placeholder="Design idea, order deadline, printer…">${esc(plan.notes)}</textarea></label></div></div>`,
     onSave:async(f)=>{
       const typed=f.elements.hex.value.trim(),hex=typed?parseColor(typed):'';
       if(typed&&!hex)throw new Error('Use a color code like #FF6A13 or RGB numbers like 255, 106, 19.');
       const file=f.elements.photo.files[0];let photo=plan.photo||'';
       if(file){
-        if(file.size>10485760||!photoTypes.includes(file.type))throw new Error('Use a JPEG, PNG, or WebP photo under 10 MB.');
-        const body=new FormData();body.append('file',file);body.append('caption',`${year} shirt`);body.append('purpose','shirt');
+        const button=$('.strong',f);button.textContent='Preparing…';
+        const body=new FormData();body.append('file',await preparePhoto(file).finally(()=>{button.textContent='Save';}));body.append('caption',`${year} shirt`);body.append('purpose','shirt');
         photo=(await api('upload',{method:'POST',body})).id||'';
       }else if(f.elements.removePhoto?.checked)photo='';
       await save('shirt',{color:f.elements.color.value,hex,photo,notes:f.elements.notes.value});
@@ -266,16 +305,15 @@ function uploadSheet(){
   sheet({title:'Add photos',save:'Upload',body:`<div class="list">
       <label class="field"><span>Year</span><select name="year">${choices.map(y=>`<option ${y===albumYear?'selected':''}>${y}</option>`).join('')}</select></label>
       <label class="field"><span>Caption</span><input name="caption" maxlength="200" placeholder="Optional"></label>
-      <label class="field"><span>Photos</span><input name="files" type="file" accept="image/jpeg,image/png,image/webp" multiple required></label>
-    </div><p class="group-foot">JPEG, PNG, or WebP up to 10 MB each. Old photos are welcome; pick the year they were taken.</p>`,
+      <label class="field"><span>Photos</span><input name="files" type="file" accept="${photoAccept}" multiple required></label>
+    </div><p class="group-foot">Any photos, including iPhone HEIC. Large photos are resized automatically. Old photos are welcome; pick the year they were taken.</p>`,
     onSave:async(f)=>{
       const target=Number(f.elements.year.value),files=[...f.elements.files.files],button=$('.strong',f);
-      for(const file of files)if(file.size>10485760||!photoTypes.includes(file.type))throw new Error(`${file.name} isn’t a JPEG, PNG, or WebP under 10 MB.`);
       const known=await api('years');
       if(!known.includes(target))await put('trip',blankTrip,undefined,target);
       years=[...new Set([...known,target])];
       let done=0;
-      try{for(const file of files){button.textContent=`${done+1} of ${files.length}…`;const body=new FormData();body.append('file',file);body.append('caption',f.elements.caption.value);await api('upload',{method:'POST',body},{},target);done++;}}
+      try{for(const file of files){button.textContent=`${done+1} of ${files.length}…`;const body=new FormData();body.append('file',await preparePhoto(file));body.append('caption',f.elements.caption.value);await api('upload',{method:'POST',body},{},target);done++;}}
       finally{button.textContent='Upload';if(target===year)await load();await setAlbumYear(target,true);}
       toast(`${plural(done,'photo')} added to ${target}.`);
     }});
