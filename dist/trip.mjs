@@ -11,3 +11,10 @@ export const sizes=['Youth XS','Youth S','Youth M','Youth L','Youth XL','Adult X
 export function shirtTotals(people) {
   return people.reduce((totals,p)=>{if(sizes.includes(p.size)) totals[p.size]=(totals[p.size]||0)+1;return totals;},{});
 }
+export function fridays(year) {
+  const day=new Date(Date.UTC(year,0,1,12));
+  day.setUTCDate(1+(5-day.getUTCDay()+7)%7);
+  const out=[];
+  while(day.getUTCFullYear()===year){out.push(day.toISOString().slice(0,10));day.setUTCDate(day.getUTCDate()+7);}
+  return out;
+}
