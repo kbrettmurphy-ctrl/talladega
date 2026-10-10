@@ -48,7 +48,7 @@ const trip=()=>dataOf('trip')[0]||blankTrip;
 const people=()=>dataOf('person').sort((a,b)=>a.family.localeCompare(b.family)||a.name.localeCompare(b.name));
 const crews=()=>[...new Set([...dataOf('person').map(p=>p.family),...dataOf('meal').map(m=>m.family),me?.crew])].filter(Boolean).sort((a,b)=>a.localeCompare(b));
 const isMe=(name)=>!!me&&String(name).trim().toLowerCase()===me.name.trim().toLowerCase();
-const albumPhotos=()=>dataOf('photo',albumRecords).filter(p=>!p.shirt).sort((a,b)=>(b.created||'').localeCompare(a.created||''));
+const albumPhotos=()=>dataOf('photo',albumRecords).filter(p=>!p.shirt).sort((a,b)=>(a.created||'').localeCompare(b.created||''));
 const shirtPlan=()=>dataOf('shirt')[0]||{color:'',hex:'',photo:'',notes:''};
 const shirtPhoto=()=>{const id=shirtPlan().photo;return id?dataOf('photo').find(p=>p.id===id):null;};
 const viewerList=()=>viewerShirt?[shirtPhoto()].filter(Boolean):albumPhotos();

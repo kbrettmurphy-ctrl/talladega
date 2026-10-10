@@ -189,7 +189,7 @@ input[type=file]::file-selector-button{margin-right:10px;padding:6px 12px;border
 .viewer-bar,.viewer-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 16px}
 .viewer-bar{padding-top:calc(10px + env(safe-area-inset-top))}
 .viewer-foot{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
-.viewer-bar span{color:rgba(255,255,255,.7);font-size:15px}
+.viewer-bar span{color:rgba(255,255,255,.7);font-size:15px;outline:none}
 .viewer .bar-button{color:#fff}
 .viewer .bar-button.danger-text{color:#ff453a}
 .viewer a.bar-button:not([href]){opacity:.4}
@@ -209,7 +209,7 @@ input[type=file]::file-selector-button{margin-right:10px;padding:6px 12px;border
 .sheet-bar h2{font-size:17px;font-weight:600;text-align:center;outline:none}
 .sheet-bar>:first-child{justify-self:start}
 .sheet-bar>:last-child{justify-self:end}
-.bar-button{min-height:44px;padding:0 2px;color:var(--tint);font-size:17px}
+.bar-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 2px;color:var(--tint);font-size:17px;line-height:1}
 .bar-button.strong{font-weight:600}
 .sheet-body{max-height:calc(var(--sheet-max) - 57px);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 28px;overscroll-behavior:contain}
 .sheet-body>.group:first-child{margin-top:4px}
