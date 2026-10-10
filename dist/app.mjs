@@ -1,4 +1,5 @@
 import {tripDays,mealSlots,sizes,shirtTotals,fridays} from './trip.mjs';
+if(new URLSearchParams(location.search).has('debug'))import('./debug.mjs');
 
 const endpoint='https://sdfleesxvattrwcsavqc.supabase.co/functions/v1/reunion-api';
 const $=(s,root=document)=>root.querySelector(s), $$=(s,root=document)=>[...root.querySelectorAll(s)];
