@@ -1,127 +1,254 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b1426">
-<meta name="color-scheme" content="light dark">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Talladega">
-<title>Talladega • Family Reunion</title>
-<script>try{var t=localStorage.getItem('reunion-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="stylesheet" href="/style.css">
-</head>
-<body class="locked">
-
-<section id="login-screen">
-  <form id="login-form" class="login-card">
-    <span class="brand-mark big" aria-hidden="true"></span>
-    <h1>’Dega, baby.</h1>
-    <p>One password for the whole family.</p>
-    <div class="list">
-      <label class="field"><span class="visually-hidden">Family password</span><input id="login-password" type="password" autocomplete="current-password" placeholder="Family password" required maxlength="200"></label>
-      <label class="row"><span class="row-main">Remember this device</span><input id="remember" type="checkbox" class="switch" checked></label>
-    </div>
-    <button class="button primary wide">Join the family</button>
-    <p class="fine">Need the password? Ask the trip organizer.</p>
-  </form>
-</section>
-
-<header class="topbar">
-  <a class="brand" href="#overview"><span class="brand-mark" aria-hidden="true"></span>Talladega</a>
-  <div class="topbar-actions">
-    <button id="year-button" class="pill-button" type="button" aria-label="Change reunion year"><span id="year-label"></span><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M1.5 6 5 2.5 8.5 6M1.5 10 5 13.5 8.5 10"/></svg></button>
-    <button id="settings-button" class="avatar" type="button" aria-label="Settings"></button>
-  </div>
-</header>
-
-<nav id="tabs" aria-label="Sections">
-  <a href="#overview" data-icon="home"><span>Home</span></a>
-  <a href="#meals" data-icon="meals"><span>Meals</span></a>
-  <a href="#people" data-icon="people"><span>People</span></a>
-  <a href="#messages" data-icon="chat"><span>Chat</span></a>
-  <a href="#photos" data-icon="photos"><span>Photos</span></a>
-</nav>
-
-<main>
-  <section id="overview" class="page">
-    <div class="hero">
-      <p class="hero-kicker">The annual family pit stop</p>
-      <h1>’Dega, baby.</h1>
-      <div class="hero-count"><strong id="count-number"></strong><span id="count-label"></span></div>
-      <p id="hero-dates" class="hero-dates"></p>
-      <button id="hero-action" class="button light" type="button" data-edit-trip>Pick our dates</button>
-    </div>
-    <div class="columns">
-      <div>
-        <div class="group">
-          <div class="group-head"><h2>The weekend</h2><button class="link" type="button" data-edit-trip>Edit</button></div>
-          <div class="list" id="trip-list"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0b1426" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Talladega" />
+    <title>Talladega • Family Reunion</title>
+    <script>
+      try {
+        var t = localStorage.getItem("reunion-theme");
+        if (t === "light" || t === "dark")
+          document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="locked">
+    <section id="login-screen">
+      <form id="login-form" class="login-card">
+        <span class="brand-mark big" aria-hidden="true"></span>
+        <h1>’Dega, baby.</h1>
+        <p>One password for the whole family.</p>
+        <div class="list">
+          <label class="field"
+            ><span class="visually-hidden">Family password</span
+            ><input
+              id="login-password"
+              type="password"
+              autocomplete="current-password"
+              placeholder="Family password"
+              required
+              maxlength="200"
+          /></label>
+          <label class="row"
+            ><span class="row-main">Remember this device</span
+            ><input id="remember" type="checkbox" class="switch" checked
+          /></label>
         </div>
-        <div class="group">
-          <div class="group-head"><h2>Weather in Lincoln</h2></div>
-          <div class="list" id="weather"></div>
-          <p class="group-foot"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Weather by Open-Meteo</a></p>
+        <button class="button primary wide">Join the family</button>
+        <p class="fine">Need the password? Ask the trip organizer.</p>
+      </form>
+    </section>
+
+    <header class="topbar">
+      <a class="brand" href="#overview"
+        ><span class="brand-mark" aria-hidden="true"></span>TALLADEGA</a
+      >
+      <div class="topbar-actions">
+        <button
+          id="year-button"
+          class="pill-button"
+          type="button"
+          aria-label="Change reunion year"
+        >
+          <span id="year-label"></span
+          ><svg viewBox="0 0 10 16" aria-hidden="true">
+            <path d="M1.5 6 5 2.5 8.5 6M1.5 10 5 13.5 8.5 10" />
+          </svg>
+        </button>
+        <button
+          id="settings-button"
+          class="avatar"
+          type="button"
+          aria-label="Settings"
+        ></button>
+      </div>
+    </header>
+
+    <nav id="tabs" aria-label="Sections">
+      <a href="#overview" data-icon="home"><span>Home</span></a>
+      <a href="#meals" data-icon="meals"><span>Meals</span></a>
+      <a href="#people" data-icon="people"><span>People</span></a>
+      <a href="#messages" data-icon="chat"><span>Chat</span></a>
+      <a href="#photos" data-icon="photos"><span>Photos</span></a>
+    </nav>
+
+    <main>
+      <section id="overview" class="page">
+        <div class="hero">
+          <p class="hero-kicker">The annual family pit stop</p>
+          <h1>’Dega, baby.</h1>
+          <div class="hero-count">
+            <strong id="count-number"></strong><span id="count-label"></span>
+          </div>
+          <p id="hero-dates" class="hero-dates"></p>
+          <button
+            id="hero-action"
+            class="button light"
+            type="button"
+            data-edit-trip
+          >
+            Pick our dates
+          </button>
         </div>
-      </div>
-      <div class="group">
-        <div class="group-head"><h2>At a glance</h2></div>
-        <div class="list" id="glance"></div>
-      </div>
-    </div>
-  </section>
+        <div class="columns">
+          <div>
+            <div class="group">
+              <div class="group-head">
+                <h2>The weekend</h2>
+                <button class="link" type="button" data-edit-trip>Edit</button>
+              </div>
+              <div class="list" id="trip-list"></div>
+            </div>
+            <div class="group">
+              <div class="group-head"><h2>Weather in Lincoln</h2></div>
+              <div class="list" id="weather"></div>
+              <p class="group-foot">
+                <a href="https://open-meteo.com/" target="_blank" rel="noopener"
+                  >Weather by Open-Meteo</a
+                >
+              </p>
+            </div>
+          </div>
+          <div class="group">
+            <div class="group-head"><h2>At a glance</h2></div>
+            <div class="list" id="glance"></div>
+          </div>
+        </div>
+      </section>
 
-  <section id="meals" class="page">
-    <div class="page-head"><div><h1>Meals</h1><p>Friday dinner through Sunday dinner. Tap a meal to claim it for your crew.</p></div></div>
-    <div id="meal-list"></div>
-  </section>
+      <section id="meals" class="page">
+        <div class="page-head">
+          <div>
+            <h1>Meals</h1>
+            <p>
+              Friday dinner through Sunday dinner. Tap a meal to claim it for
+              your crew.
+            </p>
+          </div>
+        </div>
+        <div id="meal-list"></div>
+      </section>
 
-  <section id="people" class="page">
-    <div class="page-head"><div><h1>People</h1></div><button id="add-person" class="add-button" type="button" data-add-person aria-label="Add person">+</button></div>
-    <div class="segmented"><a href="#people">Roster</a><a href="#shirts">Shirts</a></div>
-    <div id="roster-pane"><div id="roster"></div></div>
-    <div id="shirts-pane">
-      <div class="group">
-        <div class="group-head"><h2>This year’s shirt</h2><button class="link" type="button" data-edit-shirt>Edit</button></div>
-        <div class="list" id="shirt-plan"></div>
+      <section id="people" class="page">
+        <div class="page-head">
+          <div><h1>People</h1></div>
+          <button
+            id="add-person"
+            class="add-button"
+            type="button"
+            data-add-person
+            aria-label="Add person"
+          >
+            +
+          </button>
+        </div>
+        <div class="segmented">
+          <a href="#people">Roster</a><a href="#shirts">Shirts</a>
+        </div>
+        <div id="roster-pane"><div id="roster"></div></div>
+        <div id="shirts-pane">
+          <div class="group">
+            <div class="group-head">
+              <h2>This year’s shirt</h2>
+              <button class="link" type="button" data-edit-shirt>Edit</button>
+            </div>
+            <div class="list" id="shirt-plan"></div>
+          </div>
+          <div class="group">
+            <div class="group-head"><h2>Order</h2></div>
+            <div class="list">
+              <div id="shirt-totals"></div>
+              <button id="export-shirts" class="row center tint" type="button">
+                Download order (CSV)
+              </button>
+            </div>
+            <p class="group-foot" id="shirt-summary"></p>
+          </div>
+          <div class="group">
+            <div class="group-head"><h2>Everyone’s size</h2></div>
+            <div class="list" id="size-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="messages" class="page">
+        <div class="page-head">
+          <div>
+            <h1>Chat</h1>
+            <p>Arrival updates, supply runs, and announcements.</p>
+          </div>
+        </div>
+        <div id="message-list" class="thread"></div>
+        <form id="composer" class="composer">
+          <textarea
+            name="text"
+            rows="1"
+            maxlength="3000"
+            required
+            placeholder="Message the family"
+            aria-label="Message"
+          ></textarea>
+          <button class="send" aria-label="Send">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 19V5M5.5 11.5 12 5l6.5 6.5" />
+            </svg>
+          </button>
+        </form>
+      </section>
+
+      <section id="photos" class="page">
+        <div class="page-head">
+          <div><h1>Album</h1></div>
+          <button
+            class="add-button"
+            type="button"
+            data-add-photos
+            aria-label="Add photos"
+          >
+            +
+          </button>
+        </div>
+        <div class="chips" id="album-years"></div>
+        <p class="page-note" id="album-note"></p>
+        <div id="photo-grid" class="photo-grid"></div>
+      </section>
+    </main>
+
+    <dialog id="sheet" class="sheet"></dialog>
+    <dialog id="viewer" class="viewer" aria-label="Photo viewer">
+      <div class="viewer-bar">
+        <button type="button" class="bar-button" data-close>Done</button
+        ><span id="viewer-count"></span
+        ><a id="viewer-download" class="bar-button">Download</a>
       </div>
-      <div class="group">
-        <div class="group-head"><h2>Order</h2></div>
-        <div class="list"><div id="shirt-totals"></div><button id="export-shirts" class="row center tint" type="button">Download order (CSV)</button></div>
-        <p class="group-foot" id="shirt-summary"></p>
+      <div class="viewer-stage">
+        <img id="viewer-img" alt="" /><button
+          type="button"
+          class="viewer-nav prev"
+          aria-label="Previous photo"
+        >
+          ‹</button
+        ><button type="button" class="viewer-nav next" aria-label="Next photo">
+          ›
+        </button>
       </div>
-      <div class="group">
-        <div class="group-head"><h2>Everyone’s size</h2></div>
-        <div class="list" id="size-list"></div>
+      <div class="viewer-foot">
+        <p id="viewer-caption"></p>
+        <button id="viewer-delete" type="button" class="bar-button danger-text">
+          Delete
+        </button>
       </div>
-    </div>
-  </section>
-
-  <section id="messages" class="page">
-    <div class="page-head"><div><h1>Chat</h1><p>Arrival updates, supply runs, and announcements.</p></div></div>
-    <div id="message-list" class="thread"></div>
-    <form id="composer" class="composer">
-      <textarea name="text" rows="1" maxlength="3000" required placeholder="Message the family" aria-label="Message"></textarea>
-      <button class="send" aria-label="Send"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
-    </form>
-  </section>
-
-  <section id="photos" class="page">
-    <div class="page-head"><div><h1>Album</h1></div><button class="add-button" type="button" data-add-photos aria-label="Add photos">+</button></div>
-    <div class="chips" id="album-years"></div>
-    <p class="page-note" id="album-note"></p>
-    <div id="photo-grid" class="photo-grid"></div>
-  </section>
-</main>
-
-<dialog id="sheet" class="sheet"></dialog>
-<dialog id="viewer" class="viewer" aria-label="Photo viewer">
-  <div class="viewer-bar"><button type="button" class="bar-button" data-close>Done</button><span id="viewer-count"></span><a id="viewer-download" class="bar-button">Download</a></div>
-  <div class="viewer-stage"><img id="viewer-img" alt=""><button type="button" class="viewer-nav prev" aria-label="Previous photo">‹</button><button type="button" class="viewer-nav next" aria-label="Next photo">›</button></div>
-  <div class="viewer-foot"><p id="viewer-caption"></p><button id="viewer-delete" type="button" class="bar-button danger-text">Delete</button></div>
-</dialog>
-<div id="toast" popover="manual" role="status" aria-live="polite"></div>
-<script type="module" src="/app.mjs"></script>
-</body>
+    </dialog>
+    <div id="toast" popover="manual" role="status" aria-live="polite"></div>
+    <script type="module" src="/app.mjs"></script>
+  </body>
 </html>
