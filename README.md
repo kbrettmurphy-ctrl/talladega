@@ -20,8 +20,12 @@ Photos are private, accessed through the authenticated API, and limited to JPEG/
 
 ## Deployment
 
-The Sites identity is tracked in `.openai/hosting.json`. Static assets are in `dist/`. The Edge Function source is `supabase/functions/reunion-api/index.ts`; `supabase/schema.sql` records the initial schema deployed through the Supabase migration tool. Tables deny access to anonymous/authenticated browser roles. Only the Edge Function uses the server-side Supabase service credential, after verifying the family session.
+The site is hosted on **Cloudflare Pages**, connected to this GitHub repository. Every push to `main` publishes `dist/` automatically (no build command; output directory `dist`). `dist/_headers` sets response headers on Cloudflare Pages.
+
+The Edge Function source is `supabase/functions/reunion-api/index.ts`; `supabase/schema.sql` records the initial schema. Tables deny access to anonymous/authenticated browser roles. Only the Edge Function uses the server-side Supabase service credential, after verifying the family session. The function only accepts browser requests from the origins listed in `origins` at the top of that file; serving the site from a new hostname requires adding it there and redeploying the function.
+
+`.openai/hosting.json` is left over from the original ChatGPT Sites deployment and is not used by Cloudflare Pages.
 
 The password is delivered separately to the organizer. To set or rotate it, run `node scripts/set-password.mjs` locally and paste the printed SQL into the Supabase SQL editor. Existing signed sessions last up to 30 days; rotate the session-signing mechanism if immediate global revocation is required. No account password belongs in source control.
 
-Custom domain: https://talladega.murphsmitts.com (DNS and TLS validated October 10, 2026).
+Custom domain: https://talladega.murphsmitts.com (see `CLOUDFLARE-DNS.md`).
