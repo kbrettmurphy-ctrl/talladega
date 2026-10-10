@@ -24,6 +24,14 @@ The site is hosted on **Cloudflare Pages**, connected to this GitHub repository.
 
 The Edge Function source is `supabase/functions/reunion-api/index.ts`; `supabase/schema.sql` records the initial schema. Tables deny access to anonymous/authenticated browser roles. Only the Edge Function uses the server-side Supabase service credential, after verifying the family session. The function only accepts browser requests from the origins listed in `origins` at the top of that file; serving the site from a new hostname requires adding it there and redeploying the function.
 
+To deploy backend changes (requires `npx supabase@2 login` once, with the account that owns the project):
+
+```sh
+npx supabase@2 functions deploy reunion-api --project-ref sdfleesxvattrwcsavqc --no-verify-jwt --use-api
+```
+
+Keep `--no-verify-jwt` (also set in `supabase/config.toml`): the browser does not send a Supabase JWT, so enabling verification would reject every request. Deploy the backend before pushing front-end changes that depend on it.
+
 `.openai/hosting.json` is left over from the original ChatGPT Sites deployment and is not used by Cloudflare Pages.
 
 The password is delivered separately to the organizer. To set or rotate it, run `node scripts/set-password.mjs` locally and paste the printed SQL into the Supabase SQL editor. Existing signed sessions last up to 30 days; rotate the session-signing mechanism if immediate global revocation is required. No account password belongs in source control.
