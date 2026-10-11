@@ -23,7 +23,7 @@ function clean(kind:string,d:any,year:number){
  }
  if(kind==='shirt'){const hex=text(d.hex??'',7),photo=text(d.photo??'',80);if(hex&&!/^#[0-9a-fA-F]{6}$/.test(hex))throw new Error('Use a color code like #1A4FD6.');if(!/^[\w-]*$/.test(photo))throw new Error('Invalid photo.');return {color:text(d.color,100),hex:hex.toUpperCase(),photo,notes:text(d.notes,3000)};}
  if(kind==='person'){const size=text(d.size,30);if(!sizeNames.includes(size))throw new Error('Choose a listed shirt size.');return {name:text(d.name,100,true),family:text(d.family,100,true),size,diet:text(d.diet,300)};}
- if(kind==='meal'){if(d.included!==undefined&&typeof d.included!=='boolean')throw new Error('Invalid meal selection.');return {slot:text(d.slot,30,true),family:text(d.family,100),menu:text(d.menu,1000),included:d.included??true};}
+ if(kind==='meal'){if(d.included!==undefined&&typeof d.included!=='boolean')throw new Error('Invalid meal selection.');return {slot:text(d.slot,30,true),family:text(d.family,100),menu:text(d.menu,1000),included:d.included??true,by:text(d.by??'',100)};}
  if(kind==='message')return {author:text(d.author,100,true),text:text(d.text,3000,true),created:new Date().toISOString()};
  throw new Error('Unsupported record.');
 }
@@ -70,8 +70,11 @@ Deno.serve(async(req:Request)=>{
     const slots=allMealSlots(start,tripEnd(trip.data)).map(s=>s.id);
     if(!slots.includes((data as any).slot))throw new Error('This meal does not belong to the current trip dates.');
    }
-   const existing=await db('reunion_records?id=eq.'+encodeURIComponent(id)+'&select=year,kind');
+   const existing=await db('reunion_records?id=eq.'+encodeURIComponent(id)+'&select=year,kind,data');
    if(existing.length&&(existing[0].year!==year||existing[0].kind!==kind))throw new Error('This record belongs to another reunion.');
+   // addedBy: whoever first put the meal in the plan, kept on later edits. Meals saved before names
+   // were recorded stay unattributed; removing a meal never counts as adding it, but re-adding one does.
+   if(kind==='meal'){const prev=existing[0]?.data,m=data as any,readded=!prev||(prev.included===false&&!prev.addedBy&&'addedBy' in prev);m.addedBy=prev?.addedBy||(readded&&m.included?m.by:'');}
    await put(id,year,kind,data);return reply({ok:true});
   }
   if(action==='delete'&&req.method==='DELETE'){

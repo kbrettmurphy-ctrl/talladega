@@ -478,6 +478,14 @@ function tripSheet() {
   };
 }
 
+// "Added by Valerie · Last changed by Linda, Sat, Oct 10 · 3:42 PM" (names come from each device's "Who's this?").
+function mealHistory(m, slot) {
+  const changed = records.find((r) => r.id === `${year}-meal-${slot}`)?.updated_at;
+  const added = m.addedBy ? `Added by ${m.addedBy}` : "";
+  if (m.by && m.by !== m.addedBy) return [added, `Last changed by ${m.by}, ${when(changed)}`].filter(Boolean).join(" · ");
+  return added && changed ? `${added}, ${when(changed)}` : added;
+}
+
 function addMealSheet(date) {
   const planned = mealSlots(trip().start, tripEnd(trip()), dataOf("meal")).map((s) => s.id);
   const missing = allMealSlots(date, date).filter((s) => !planned.includes(s.id));
@@ -504,13 +512,13 @@ function mealSheet(slot) {
     title: `${format(s.date, { weekday: "long" })} ${s.meal.toLowerCase()}`,
     save: !inPlan ? "Add" : m.family ? "Save" : "Claim",
     body: `<div class="list">${crewField(m.family || me?.crew || "", "Nobody yet")}</div>
-      <div class="group"><div class="list"><label class="field stack"><span>On the menu</span><textarea name="menu" maxlength="1000" placeholder="Main dish, sides, supplies needed…">${esc(m.menu)}</textarea></label></div></div>`,
+      <div class="group"><div class="list"><label class="field stack"><span>On the menu</span><textarea name="menu" maxlength="1000" placeholder="Main dish, sides, supplies needed…">${esc(m.menu)}</textarea></label></div>${inPlan ? `<p class="group-foot">${esc(mealHistory(m, slot))}</p>` : ""}</div>`,
     onSave: (f) =>
-      save("meal", { slot, family: crewValue(f), menu: f.elements.menu.value, included: true }),
+      save("meal", { slot, family: crewValue(f), menu: f.elements.menu.value, included: true, by: me?.name || "" }),
     danger: inPlan
       ? {
           label: "Remove meal from plan",
-          run: () => save("meal", { slot, family: m.family, menu: m.menu, included: false }),
+          run: () => save("meal", { slot, family: m.family, menu: m.menu, included: false, by: me?.name || "" }),
         }
       : null,
   });
