@@ -450,7 +450,7 @@ function sheet({
 function tripSheet() {
   const t = trip();
   const form = sheet({
-    title: `${year} weekend`,
+    title: `${year} trip`,
     body: `<div class="list">
     <label class="field"><span>Arrival</span><input type="date" name="start" value="${esc(t.start)}" min="${year}-01-01" max="${year}-12-31"></label>
     <label class="field"><span>Departure</span><input type="date" name="end" value="${esc(tripEnd(t))}" min="${esc(t.start || year+'-01-01')}"></label>
@@ -485,17 +485,20 @@ function mealSheet(slot) {
     family: "",
     menu: "",
   };
+  const inPlan = mealSlots(trip().start, tripEnd(trip()), dataOf("meal")).some((x) => x.id === slot);
   const form = sheet({
     title: `${format(s.date, { weekday: "long" })} ${s.meal.toLowerCase()}`,
-    save: m.family ? "Save" : "Save meal",
+    save: !inPlan ? "Add" : m.family ? "Save" : "Claim",
     body: `<div class="list">${crewField(m.family || me?.crew || "", "Nobody yet")}</div>
       <div class="group"><div class="list"><label class="field stack"><span>On the menu</span><textarea name="menu" maxlength="1000" placeholder="Main dish, sides, supplies needed…">${esc(m.menu)}</textarea></label></div></div>`,
     onSave: (f) =>
       save("meal", { slot, family: crewValue(f), menu: f.elements.menu.value, included: true }),
-    danger: {
-      label: "Remove meal from plan",
-      run: () => save("meal", { slot, family: m.family, menu: m.menu, included: false }),
-    },
+    danger: inPlan
+      ? {
+          label: "Remove meal from plan",
+          run: () => save("meal", { slot, family: m.family, menu: m.menu, included: false }),
+        }
+      : null,
   });
   bindCrew(form);
 }
@@ -940,9 +943,17 @@ function renderMeals() {
     .map((date) =>
       group(
         format(date, { weekday: "long", month: "short", day: "numeric" }),
-        `<div class="list">${slots
-          .filter((s) => s.date === date)
+        `<div class="list">${allMealSlots(date, date)
           .map((s) => {
+            if (!slots.some((x) => x.id === s.id))
+              return row({
+                tag: "button",
+                attrs: `data-meal="${s.id}"`,
+                cls: "add-row",
+                title: s.meal,
+                value: "+ Add",
+                valueCls: "open",
+              });
             const m = meals.find((x) => x.slot === s.id) || {};
             return row({
               tag: "button",
@@ -958,7 +969,7 @@ function renderMeals() {
                 : "open",
             });
           })
-          .join("")}${allMealSlots(date,date).filter(s=>!slots.some(x=>x.id===s.id)).map(s=>row({tag:"button",attrs:`data-meal="${s.id}"`,cls:"nav",title:`Add ${s.meal.toLowerCase()}`,value:"+"})).join("")}</div>`,
+          .join("")}</div>`,
       ),
     )
     .join("");

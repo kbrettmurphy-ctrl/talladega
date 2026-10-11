@@ -622,6 +622,14 @@ input[type="file"]::file-selector-button {
   transform: translateX(20px);
 }
 
+/* Meals not in the plan yet */
+.row.add-row .row-title{color:var(--label-2)}
+
+/* Date pickers sit on the right, like the other picker rows */
+.field input[type=date]{flex:1;min-width:0;text-align:right;color:var(--label-2);-webkit-appearance:none;appearance:none}
+.field input[type=date]::-webkit-date-and-time-value{text-align:right}
+.field input[type=date]::-webkit-calendar-picker-indicator{margin-left:8px;opacity:.5}
+
 /* Shirt */
 .swatch {
   flex-shrink: 0;
