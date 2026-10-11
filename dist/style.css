@@ -566,6 +566,27 @@ select {
 .field select {
   flex: 1;
 }
+/* A picker row is tappable end to end: the select is stretched over the whole row, its value
+   right-aligned, and the row's label shows through on the left. */
+.field:has(> select) {
+  position: relative;
+}
+.field > select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 33px 0 128px;
+  background-position: right 16px center;
+  border-radius: 0;
+}
+.field > select:focus-visible {
+  outline: none;
+}
+.field:has(> select):focus-within {
+  box-shadow: none;
+}
 .list .row select {
   flex-shrink: 0;
   max-width: 45%;
