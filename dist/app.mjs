@@ -843,14 +843,16 @@ function renderOverview() {
       b.created.localeCompare(a.created),
     ),
     photos = dataOf("photo").filter((p) => !p.shirt);
-  const glance = (href, icon, title, value, sub = "") =>
-    `<a class="row nav" href="${href}"><span class="row-icon ${icon}">${icons[icon]}</span><span class="row-main"><span class="row-title">${title}</span>${sub ? `<span class="row-sub one-line">${esc(sub)}</span>` : ""}</span><span class="row-value">${esc(value)}</span></a>`;
+  const glance = (href, icon, title, value, sub = "", valueCls = "") =>
+    `<a class="row nav" href="${href}"><span class="row-icon ${icon}">${icons[icon]}</span><span class="row-main"><span class="row-title">${title}</span>${sub ? `<span class="row-sub one-line">${esc(sub)}</span>` : ""}</span><span class="row-value ${valueCls}">${esc(value)}</span></a>`;
   $("#glance").innerHTML =
     glance(
       "#meals",
       "meals",
       "Meals",
       days ? `${claimed} of ${slots.length} claimed` : "Set dates",
+      "",
+      days && claimed < slots.length ? "warn" : "",
     ) +
     glance(
       "#people",
@@ -961,7 +963,10 @@ function renderMeals() {
   }
   const meals = dataOf("meal"),
     slots = mealSlots(t.start, tripEnd(t), dataOf("meal"));
-  el.innerHTML = tripDays(t.start, tripEnd(t))
+  const unclaimed = slots.filter((s) => !meals.find((m) => m.slot === s.id)?.family).length;
+  el.innerHTML = (unclaimed
+    ? `<div class="callout" role="status"><b>${plural(unclaimed, "meal")} still ${unclaimed === 1 ? "needs" : "need"} a crew.</b> Tap one to claim it.</div>`
+    : "") + tripDays(t.start, tripEnd(t))
     .map((date) =>
       group(
         format(date, { weekday: "long", month: "short", day: "numeric" }),
@@ -974,11 +979,11 @@ function renderMeals() {
             return row({
               tag: "button",
               attrs: `data-meal="${s.id}"`,
-              cls: "nav",
+              cls: m.family ? "nav" : "nav unclaimed",
               title: s.meal,
-              sub: m.menu || "",
-              value: m.family || "Open",
-              valueCls: m.family ? (m.family === me?.crew ? "mine" : "") : "open",
+              sub: m.menu || (m.family ? "" : "Nobody’s cooking yet"),
+              value: m.family || "Claim",
+              valueCls: m.family ? (m.family === me?.crew ? "mine" : "") : "claim",
             });
           });
           if (!planned.length) rows.push(note("No meals planned"));

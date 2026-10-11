@@ -13,6 +13,8 @@
   --tint: #0a6cff;
   --red: #ff3b30;
   --orange: #c75c00;
+  --on-orange: #fff;
+  --orange-fill: rgba(199, 92, 0, 0.12);
   --green: #248a3d;
   --switch-on: #34c759;
   --bar: rgba(249, 249, 251, 0.82);
@@ -38,6 +40,8 @@
   --tint: #0a84ff;
   --red: #ff453a;
   --orange: #ff9f0a;
+  --on-orange: #000;
+  --orange-fill: rgba(255, 159, 10, 0.16);
   --green: #30d158;
   --switch-on: #30d158;
   --bar: rgba(22, 22, 24, 0.82);
@@ -59,6 +63,8 @@
     --tint: #0a84ff;
     --red: #ff453a;
     --orange: #ff9f0a;
+    --on-orange: #000;
+    --orange-fill: rgba(255, 159, 10, 0.16);
     --green: #30d158;
     --switch-on: #30d158;
     --bar: rgba(22, 22, 24, 0.82);
@@ -565,6 +571,29 @@ select {
 }
 .field select {
   flex: 1;
+}
+/* Unclaimed meals: an orange "Claim" capsule and hint, plus a reminder above the list */
+.row-value.claim {
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: var(--orange);
+  color: var(--on-orange);
+  font-size: 15px;
+  font-weight: 600;
+}
+.row.unclaimed .row-sub {
+  color: var(--orange);
+}
+.callout {
+  margin: 16px 0 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--orange-fill);
+  color: var(--label);
+  font-size: 15px;
+}
+.callout b {
+  color: var(--orange);
 }
 /* A picker row is tappable end to end: the select is stretched over the whole row, its value
    right-aligned, and the row's label shows through on the left. */
