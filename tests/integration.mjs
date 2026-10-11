@@ -10,10 +10,10 @@ assert.equal((await call('login','POST',{password:'incorrect-test-password'})).s
 const login=await call('login','POST',{password});assert.equal(login.status,200);token=login.body.token;
 const records=[];
 async function save(kind,data,id=crypto.randomUUID()){const r=await call('save','POST',{kind,data,id});assert.equal(r.status,200,JSON.stringify(r.body));records.push(id);return id;}
-await save('trip',{start:'2099-10-09',camp:'Integration test',sites:'TEST',notes:''},'2099-trip');
-const bad=await call('save','POST',{kind:'trip',data:{start:'2099-10-10',camp:'',sites:'',notes:''}});assert.equal(bad.status,400);
+await save('trip',{start:'2099-10-07',end:'2099-10-13',camp:'Integration test',sites:'TEST',notes:''},'2099-trip');
+const bad=await call('save','POST',{kind:'trip',data:{start:'2099-10-10',end:'2099-10-09',camp:'',sites:'',notes:''}});assert.equal(bad.status,400);
 await save('meal',{slot:'2099-10-09-Dinner',family:'Test household',menu:'Test menu'},'2099-meal-2099-10-09-Dinner');
-assert.equal((await call('save','POST',{kind:'meal',data:{slot:'2099-10-12-Dinner',family:'Test',menu:''}})).status,400);
+assert.equal((await call('save','POST',{kind:'meal',data:{slot:'2099-10-14-Dinner',family:'Test',menu:''}})).status,400);
 const person=await save('person',{name:'TEST PERSON',family:'Test household',size:'Adult L',diet:''});
 await save('person',{name:'TEST PERSON EDITED',family:'Test household',size:'Adult XL',diet:''},person);
 await save('shirt',{color:'Test blue',notes:'Test shirt plan'},'2099-shirt');

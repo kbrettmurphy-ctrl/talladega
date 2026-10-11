@@ -1,4 +1,4 @@
-import { tripDays, mealSlots, sizes, shirtTotals, fridays } from "./trip.mjs";
+import { tripDays, tripEnd, allMealSlots, mealSlots, sizes, shirtTotals } from "./trip.mjs?v=2026-10-11.1";
 if (new URLSearchParams(location.search).has("debug")) import("./debug.mjs");
 
 const endpoint =
@@ -14,7 +14,7 @@ const esc = (s) =>
       ],
   );
 const photoAccept = "image/*,.heic,.heif";
-const blankTrip = { start: "", camp: "", sites: "", notes: "" };
+const blankTrip = { start: "", end: "", camp: "", sites: "", notes: "" };
 
 // Older iPhones (iOS before 15.4) have no <dialog> or crypto.randomUUID; give them minimal stand-ins.
 if (!crypto.randomUUID)
@@ -452,24 +452,18 @@ function tripSheet() {
   const form = sheet({
     title: `${year} weekend`,
     body: `<div class="list">
-    <label class="field"><span>Arrival</span><select name="start"><option value="">Not set</option>${fridays(
-      year,
-    )
-      .map(
-        (d) =>
-          `<option value="${d}" ${d === t.start ? "selected" : ""}>Fri, ${format(d)}</option>`,
-      )
-      .join("")}</select></label>
-    <div class="row"><span class="row-main">Departure</span><span class="row-value" data-departure></span></div>
+    <label class="field"><span>Arrival</span><input type="date" name="start" value="${esc(t.start)}" min="${year}-01-01" max="${year}-12-31"></label>
+    <label class="field"><span>Departure</span><input type="date" name="end" value="${esc(tripEnd(t))}" min="${esc(t.start || year+'-01-01')}"></label>
     <label class="field"><span>Campground</span><input name="camp" maxlength="100" value="${esc(t.camp)}" placeholder="e.g. GEICO West B"></label>
     <label class="field"><span>Sites</span><input name="sites" maxlength="100" value="${esc(t.sites)}" placeholder="e.g. 524 & 525"></label>
   </div>
   <div class="group"><div class="list"><label class="field stack"><span>Camping notes</span><textarea name="notes" maxlength="3000" placeholder="Arrival plans, what to bring, where to meet…">${esc(t.notes)}</textarea></label></div></div>`,
     onSave: async (f) => {
       const d = Object.fromEntries(new FormData(f));
+      if (d.start || d.end) tripDays(d.start, d.end);
       if (
         t.start &&
-        t.start !== d.start &&
+        (t.start !== d.start || tripEnd(t) !== d.end) &&
         dataOf("meal").some((m) => m.family) &&
         !confirm(
           "Changing dates creates new meal slots. Existing claims stay saved with their old dates. Continue?",
@@ -479,18 +473,13 @@ function tripSheet() {
       await save("trip", d);
     },
   });
-  const sync = () => {
-    const v = form.elements.start.value;
-    $("[data-departure]", form).textContent = v
-      ? shortDate(tripDays(v)[3])
-      : "—";
+  form.elements.start.onchange = () => {
+    form.elements.end.min = form.elements.start.value || year+'-01-01';
   };
-  form.elements.start.onchange = sync;
-  sync();
 }
 
 function mealSheet(slot) {
-  const s = mealSlots(trip().start).find((x) => x.id === slot);
+  const s = allMealSlots(trip().start, tripEnd(trip())).find((x) => x.id === slot);
   if (!s) return;
   const m = dataOf("meal").find((x) => x.slot === slot) || {
     family: "",
@@ -498,18 +487,15 @@ function mealSheet(slot) {
   };
   const form = sheet({
     title: `${format(s.date, { weekday: "long" })} ${s.meal.toLowerCase()}`,
-    save: m.family ? "Save" : "Claim",
+    save: m.family ? "Save" : "Save meal",
     body: `<div class="list">${crewField(m.family || me?.crew || "", "Nobody yet")}</div>
       <div class="group"><div class="list"><label class="field stack"><span>On the menu</span><textarea name="menu" maxlength="1000" placeholder="Main dish, sides, supplies needed…">${esc(m.menu)}</textarea></label></div></div>`,
     onSave: (f) =>
-      save("meal", { slot, family: crewValue(f), menu: f.elements.menu.value }),
-    danger:
-      m.family || m.menu
-        ? {
-            label: "Clear this meal",
-            run: () => save("meal", { slot, family: "", menu: "" }),
-          }
-        : null,
+      save("meal", { slot, family: crewValue(f), menu: f.elements.menu.value, included: true }),
+    danger: {
+      label: "Remove meal from plan",
+      run: () => save("meal", { slot, family: m.family, menu: m.menu, included: false }),
+    },
   });
   bindCrew(form);
 }
@@ -794,36 +780,36 @@ function render() {
 
 function renderOverview() {
   const t = trip(),
-    days = t.start ? tripDays(t.start) : null;
+    days = t.start ? tripDays(t.start, tripEnd(t)) : null;
   const until = t.start
     ? Math.round((Date.parse(t.start) - Date.parse(today())) / 86400000)
     : null;
   const [number, label] =
     until === null
-      ? ["", "Pick our Friday to start the countdown."]
+      ? ["", "Pick our dates to start the countdown."]
       : until > 1
         ? [until, "days until we go racin'."]
         : until === 1
           ? ["1", "day to go. Pack the cooler."]
-          : until >= -3
+          : today() <= tripEnd(t)
             ? ["🏁", "It’s reunion weekend!"]
             : [String(year), "In the memory books."];
   $("#count-number").textContent = number;
   $("#count-number").hidden = !number;
   $("#count-label").textContent = label;
   $("#hero-dates").textContent = days
-    ? `${shortDate(days[0])} – ${shortDate(days[3])}`
+    ? `${shortDate(days[0])} – ${shortDate(days[days.length - 1])}`
     : "";
   $("#hero-action").hidden = !!t.start;
   $("#trip-list").innerHTML =
     row({ title: "Arrival", value: days ? shortDate(days[0]) : "Not set" }) +
-    row({ title: "Departure", value: days ? shortDate(days[3]) : "—" }) +
+    row({ title: "Departure", value: days ? shortDate(days[days.length - 1]) : "—" }) +
     row({ title: "Campground", value: t.camp || "Not set" }) +
     row({ title: "Sites", value: t.sites || "Not set" }) +
     (t.notes ? row({ title: "Notes", sub: t.notes }) : "");
   const ps = dataOf("person"),
     meals = dataOf("meal"),
-    slots = days ? mealSlots(t.start) : [],
+    slots = days ? mealSlots(t.start, tripEnd(t), dataOf("meal")) : [],
     claimed = slots.filter((s) =>
       meals.some((m) => m.slot === s.id && m.family),
     ).length,
@@ -895,9 +881,9 @@ async function renderWeather() {
     el.innerHTML = note("Pick trip dates to see the weekend outlook.");
     return;
   }
-  const dates = tripDays(t.start),
+  const dates = tripDays(t.start, tripEnd(t)),
     now = today();
-  if (dates[3] < now) {
+  if (dates[dates.length - 1] < now) {
     el.innerHTML = note("This trip is in the memory books.");
     return;
   }
@@ -923,7 +909,7 @@ async function renderWeather() {
         if (i < 0)
           return row({
             title: format(date, { weekday: "long" }),
-            sub: "Not in the forecast yet",
+            sub: date < now ? "Past date" : "Not in the forecast yet",
           });
         const [emoji, text] = weather[d.weather_code[i]] || ["🌡️", "Mixed"];
         return `<div class="row"><span class="wx" aria-hidden="true">${emoji}</span><span class="row-main"><span class="row-title">${format(date, { weekday: "long" })}</span><span class="row-sub">${text} · ${d.precipitation_probability_max[i] ?? "—"}% rain${(Date.parse(date) - Date.parse(now)) / 86400000 > 7 ? " · early estimate" : ""}</span></span><span class="row-value temps"><b>${temp(d.temperature_2m_max[i])}</b> ${temp(d.temperature_2m_min[i])}</span></div>`;
@@ -942,16 +928,15 @@ function renderMeals() {
     el = $("#meal-list");
   if (!t.start) {
     el.innerHTML = empty(
-      "Set the Friday arrival to create the seven meal slots.",
+      "Set arrival and departure dates to plan meals for the trip.",
       "Pick our dates",
       "data-edit-trip",
     );
     return;
   }
   const meals = dataOf("meal"),
-    slots = mealSlots(t.start);
-  el.innerHTML = tripDays(t.start)
-    .slice(0, 3)
+    slots = mealSlots(t.start, tripEnd(t), dataOf("meal"));
+  el.innerHTML = tripDays(t.start, tripEnd(t))
     .map((date) =>
       group(
         format(date, { weekday: "long", month: "short", day: "numeric" }),
@@ -973,7 +958,7 @@ function renderMeals() {
                 : "open",
             });
           })
-          .join("")}</div>`,
+          .join("")}${allMealSlots(date,date).filter(s=>!slots.some(x=>x.id===s.id)).map(s=>row({tag:"button",attrs:`data-meal="${s.id}"`,cls:"nav",title:`Add ${s.meal.toLowerCase()}`,value:"+"})).join("")}</div>`,
       ),
     )
     .join("");

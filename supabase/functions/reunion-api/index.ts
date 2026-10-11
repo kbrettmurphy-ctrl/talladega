@@ -1,3 +1,4 @@
+import {tripEnd, tripDays, allMealSlots} from './trip.mjs';
 const base = Deno.env.get('SUPABASE_URL')!;
 const secret = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const origins = new Set(['https://talladega.murphsmitts.com','https://talladega-family-reunion.p5v5vhhkmv.chatgpt.site','http://127.0.0.1:4173','http://localhost:4173']);
@@ -15,10 +16,14 @@ function checkYear(v:unknown){const y=Number(v);if(!Number.isInteger(y)||y<2000|
 const sizeNames=['','Youth XS','Youth S','Youth M','Youth L','Youth XL','Adult XS','Adult S','Adult M','Adult L','Adult XL','Adult 2XL','Adult 3XL','Adult 4XL','Adult 5XL'];
 function clean(kind:string,d:any,year:number){
  if(!d||typeof d!=='object')throw new Error('Missing form data.');
- if(kind==='trip'){const start=text(d.start,10);if(start){const date=new Date(start+'T12:00:00Z');if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||!Number.isFinite(+date)||date.toISOString().slice(0,10)!==start||date.getUTCDay()!==5||date.getUTCFullYear()!==year)throw new Error('Choose a Friday within this reunion year.');}return {start,camp:text(d.camp,100),sites:text(d.sites,100),notes:text(d.notes,3000)};}
+ if(kind==='trip'){
+  const start=text(d.start,10), end=text(d.end??tripEnd({start}),10);
+  if(start||end){tripDays(start,end);if(Number(start.slice(0,4))!==year)throw new Error('Arrival must be within this reunion year.');}
+  return {start,end,camp:text(d.camp,100),sites:text(d.sites,100),notes:text(d.notes,3000)};
+ }
  if(kind==='shirt'){const hex=text(d.hex??'',7),photo=text(d.photo??'',80);if(hex&&!/^#[0-9a-fA-F]{6}$/.test(hex))throw new Error('Use a color code like #1A4FD6.');if(!/^[\w-]*$/.test(photo))throw new Error('Invalid photo.');return {color:text(d.color,100),hex:hex.toUpperCase(),photo,notes:text(d.notes,3000)};}
  if(kind==='person'){const size=text(d.size,30);if(!sizeNames.includes(size))throw new Error('Choose a listed shirt size.');return {name:text(d.name,100,true),family:text(d.family,100,true),size,diet:text(d.diet,300)};}
- if(kind==='meal')return {slot:text(d.slot,30,true),family:text(d.family,100),menu:text(d.menu,1000)};
+ if(kind==='meal'){if(d.included!==undefined&&typeof d.included!=='boolean')throw new Error('Invalid meal selection.');return {slot:text(d.slot,30,true),family:text(d.family,100),menu:text(d.menu,1000),included:d.included??true};}
  if(kind==='message')return {author:text(d.author,100,true),text:text(d.text,3000,true),created:new Date().toISOString()};
  throw new Error('Unsupported record.');
 }
@@ -62,7 +67,7 @@ Deno.serve(async(req:Request)=>{
    if(kind==='meal'){
     const [trip]=await db('reunion_records?id=eq.'+year+'-trip&select=data');
     const start=trip?.data?.start;if(!start)throw new Error('Set trip dates first.');
-    const slots=[0,1,2].flatMap(i=>(i===0?['Dinner']:['Breakfast','Lunch','Dinner']).map(m=>new Date(+new Date(start+'T12:00:00Z')+i*86400000).toISOString().slice(0,10)+'-'+m));
+    const slots=allMealSlots(start,tripEnd(trip.data)).map(s=>s.id);
     if(!slots.includes((data as any).slot))throw new Error('This meal does not belong to the current trip dates.');
    }
    const existing=await db('reunion_records?id=eq.'+encodeURIComponent(id)+'&select=year,kind');
