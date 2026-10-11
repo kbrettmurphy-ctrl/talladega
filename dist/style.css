@@ -12,10 +12,9 @@
   --sep: rgba(60, 60, 67, 0.22);
   --tint: #0a6cff;
   --red: #ff3b30;
-  --orange: #c75c00;
-  --on-claim: #0b1426;
-  --claim-text: #7a5c00;
-  --claim-fill: rgba(255, 211, 45, 0.25);
+  --on-caution: #0b1426;
+  --caution: #7a5c00;
+  --caution-fill: rgba(255, 211, 45, 0.25);
   --green: #248a3d;
   --switch-on: #34c759;
   --bar: rgba(249, 249, 251, 0.82);
@@ -40,9 +39,8 @@
   --sep: rgba(84, 84, 88, 0.6);
   --tint: #0a84ff;
   --red: #ff453a;
-  --orange: #ff9f0a;
-  --claim-text: #ffd32d;
-  --claim-fill: rgba(255, 211, 45, 0.16);
+  --caution: #ffd32d;
+  --caution-fill: rgba(255, 211, 45, 0.16);
   --green: #30d158;
   --switch-on: #30d158;
   --bar: rgba(22, 22, 24, 0.82);
@@ -63,9 +61,8 @@
     --sep: rgba(84, 84, 88, 0.6);
     --tint: #0a84ff;
     --red: #ff453a;
-    --orange: #ff9f0a;
-    --claim-text: #ffd32d;
-    --claim-fill: rgba(255, 211, 45, 0.16);
+    --caution: #ffd32d;
+    --caution-fill: rgba(255, 211, 45, 0.16);
     --green: #30d158;
     --switch-on: #30d158;
     --bar: rgba(22, 22, 24, 0.82);
@@ -443,7 +440,7 @@ a.row:active {
 }
 .row-value.warn,
 select.warn {
-  color: var(--orange);
+  color: var(--caution);
 }
 .row.nav::after {
   content: "";
@@ -573,28 +570,29 @@ select {
 .field select {
   flex: 1;
 }
-/* Unclaimed meals: a brand-yellow "Claim" capsule and hint, plus a reminder above the list */
+/* Caution yellow (like the flag) marks anything that still needs attention: unclaimed meals,
+   missing shirt sizes, and the Home meals count. */
 .row-value.claim {
   padding: 5px 14px;
   border-radius: 999px;
   background: var(--brand-yellow);
-  color: var(--on-claim);
+  color: var(--on-caution);
   font-size: 15px;
   font-weight: 600;
 }
 .row.unclaimed .row-sub {
-  color: var(--claim-text);
+  color: var(--caution);
 }
 .callout {
   margin: 16px 0 0;
   padding: 12px 16px;
   border-radius: 12px;
-  background: var(--claim-fill);
+  background: var(--caution-fill);
   color: var(--label);
   font-size: 15px;
 }
 .callout b {
-  color: var(--claim-text);
+  color: var(--caution);
 }
 /* A picker row is tappable end to end: the select is stretched over the whole row, its value
    right-aligned, and the row's label shows through on the left. */
@@ -623,7 +621,7 @@ select {
   color: var(--tint);
 }
 .list .row select.warn {
-  color: var(--orange);
+  color: var(--caution);
 }
 input[type="file"] {
   font-size: 15px;
