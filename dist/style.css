@@ -13,8 +13,9 @@
   --tint: #0a6cff;
   --red: #ff3b30;
   --orange: #c75c00;
-  --on-orange: #fff;
-  --orange-fill: rgba(199, 92, 0, 0.12);
+  --on-claim: #0b1426;
+  --claim-text: #7a5c00;
+  --claim-fill: rgba(255, 211, 45, 0.25);
   --green: #248a3d;
   --switch-on: #34c759;
   --bar: rgba(249, 249, 251, 0.82);
@@ -40,8 +41,8 @@
   --tint: #0a84ff;
   --red: #ff453a;
   --orange: #ff9f0a;
-  --on-orange: #000;
-  --orange-fill: rgba(255, 159, 10, 0.16);
+  --claim-text: #ffd32d;
+  --claim-fill: rgba(255, 211, 45, 0.16);
   --green: #30d158;
   --switch-on: #30d158;
   --bar: rgba(22, 22, 24, 0.82);
@@ -63,8 +64,8 @@
     --tint: #0a84ff;
     --red: #ff453a;
     --orange: #ff9f0a;
-    --on-orange: #000;
-    --orange-fill: rgba(255, 159, 10, 0.16);
+    --claim-text: #ffd32d;
+    --claim-fill: rgba(255, 211, 45, 0.16);
     --green: #30d158;
     --switch-on: #30d158;
     --bar: rgba(22, 22, 24, 0.82);
@@ -572,28 +573,28 @@ select {
 .field select {
   flex: 1;
 }
-/* Unclaimed meals: an orange "Claim" capsule and hint, plus a reminder above the list */
+/* Unclaimed meals: a brand-yellow "Claim" capsule and hint, plus a reminder above the list */
 .row-value.claim {
   padding: 5px 14px;
   border-radius: 999px;
-  background: var(--orange);
-  color: var(--on-orange);
+  background: var(--brand-yellow);
+  color: var(--on-claim);
   font-size: 15px;
   font-weight: 600;
 }
 .row.unclaimed .row-sub {
-  color: var(--orange);
+  color: var(--claim-text);
 }
 .callout {
   margin: 16px 0 0;
   padding: 12px 16px;
   border-radius: 12px;
-  background: var(--orange-fill);
+  background: var(--claim-fill);
   color: var(--label);
   font-size: 15px;
 }
 .callout b {
-  color: var(--orange);
+  color: var(--claim-text);
 }
 /* A picker row is tappable end to end: the select is stretched over the whole row, its value
    right-aligned, and the row's label shows through on the left. */
@@ -673,9 +674,21 @@ input[type="file"]::file-selector-button {
 }
 
 /* Date pickers sit on the right, like the other picker rows */
-.field input[type=date]{flex:1;min-width:0;text-align:right;color:var(--label-2);-webkit-appearance:none;appearance:none}
-.field input[type=date]::-webkit-date-and-time-value{text-align:right}
-.field input[type=date]::-webkit-calendar-picker-indicator{margin-left:8px;opacity:.5}
+.field input[type="date"] {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  color: var(--label-2);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.field input[type="date"]::-webkit-date-and-time-value {
+  text-align: right;
+}
+.field input[type="date"]::-webkit-calendar-picker-indicator {
+  margin-left: 8px;
+  opacity: 0.5;
+}
 
 /* Shirt */
 .swatch {
