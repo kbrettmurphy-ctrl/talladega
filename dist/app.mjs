@@ -478,6 +478,20 @@ function tripSheet() {
   };
 }
 
+function addMealSheet(date) {
+  const planned = mealSlots(trip().start, tripEnd(trip()), dataOf("meal")).map((s) => s.id);
+  const missing = allMealSlots(date, date).filter((s) => !planned.includes(s.id));
+  if (missing.length === 1) return mealSheet(missing[0].id);
+  const form = sheet({
+    title: "Add a meal",
+    body: group(
+      format(date, { weekday: "long", month: "short", day: "numeric" }),
+      `<div class="list">${missing.map((s) => row({ tag: "button", attrs: `data-pick-meal="${s.id}"`, cls: "nav", title: s.meal })).join("")}</div>`,
+    ),
+  });
+  $$("[data-pick-meal]", form).forEach((b) => (b.onclick = () => mealSheet(b.dataset.pickMeal)));
+}
+
 function mealSheet(slot) {
   const s = allMealSlots(trip().start, tripEnd(trip())).find((x) => x.id === slot);
   if (!s) return;
@@ -943,17 +957,11 @@ function renderMeals() {
     .map((date) =>
       group(
         format(date, { weekday: "long", month: "short", day: "numeric" }),
-        `<div class="list">${allMealSlots(date, date)
-          .map((s) => {
-            if (!slots.some((x) => x.id === s.id))
-              return row({
-                tag: "button",
-                attrs: `data-meal="${s.id}"`,
-                cls: "add-row",
-                title: s.meal,
-                value: "+ Add",
-                valueCls: "open",
-              });
+        `<div class="list">${(() => {
+          // Only planned meals are listed; the rest are offered through "Add a meal".
+          const planned = slots.filter((s) => s.date === date),
+            missing = allMealSlots(date, date).filter((s) => !planned.some((x) => x.id === s.id));
+          const rows = planned.map((s) => {
             const m = meals.find((x) => x.slot === s.id) || {};
             return row({
               tag: "button",
@@ -962,14 +970,14 @@ function renderMeals() {
               title: s.meal,
               sub: m.menu || "",
               value: m.family || "Open",
-              valueCls: m.family
-                ? m.family === me?.crew
-                  ? "mine"
-                  : ""
-                : "open",
+              valueCls: m.family ? (m.family === me?.crew ? "mine" : "") : "open",
             });
-          })
-          .join("")}</div>`,
+          });
+          if (!planned.length) rows.push(note("No meals planned"));
+          if (missing.length)
+            rows.push(`<button type="button" class="row center tint" data-add-meal="${date}">+ Add a meal</button>`);
+          return rows.join("");
+        })()}</div>`,
       ),
     )
     .join("");
@@ -1304,6 +1312,7 @@ document.addEventListener("click", (e) => {
   if (!t) return;
   const d = t.dataset;
   if (d.meal) mealSheet(d.meal);
+  else if (d.addMeal) addMealSheet(d.addMeal);
   else if ("editTrip" in d) tripSheet();
   else if (d.editPerson) personSheet(d.editPerson);
   else if ("addPerson" in d) personSheet();
