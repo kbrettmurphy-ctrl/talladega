@@ -1289,6 +1289,7 @@ async function switchYear(y, create = false) {
 }
 
 function lock() {
+  document.documentElement.classList.remove("checking");
   token = "";
   localStorage.removeItem("reunion-session");
   document.body.classList.add("locked");
@@ -1302,6 +1303,7 @@ async function unlock() {
   albumYear = year;
   await load();
   document.body.classList.remove("locked");
+  document.documentElement.classList.remove("checking");
   applyTheme();
   showPage();
   if (!me)
@@ -1485,9 +1487,17 @@ $("#login-form").onsubmit = (e) => {
 
 applyTheme();
 showPage();
-if (token)
-  unlock().catch((e) => {
-    lock();
-    toast(e.message);
+// An expired or revoked session gets a 401, which locks the app via api(). Any other failure
+// (usually no signal) keeps the saved sign-in and offers a retry instead of the password form.
+function resume() {
+  $("#splash-text").textContent = "Loading your plans…";
+  $("#splash-retry").hidden = true;
+  unlock().catch(() => {
+    if (!token) return;
+    $("#splash-text").textContent = "Couldn’t reach the server. Check your connection and try again.";
+    $("#splash-retry").hidden = false;
   });
+}
+$("#splash-retry").onclick = resume;
+if (token) resume();
 else lock();

@@ -1305,6 +1305,16 @@ input[type="file"]::file-selector-button {
     radial-gradient(120% 80% at 100% 0, #1d4a97 0, transparent 60%),
     linear-gradient(160deg, #16294a, var(--navy));
 }
+.splash,
+.checking #login-form {
+  display: none;
+}
+.checking .splash {
+  display: block;
+}
+.splash .button {
+  margin-top: 20px;
+}
 .login-card {
   width: min(400px, 100%);
   padding: 32px 24px 24px;

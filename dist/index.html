@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="build" content="2026-10-11.8" />
+    <meta name="build" content="2026-10-11.9" />
     <meta
       name="viewport"
       content="width=device-width,initial-scale=1,viewport-fit=cover"
@@ -18,12 +18,21 @@
         var t = localStorage.getItem("reunion-theme");
         if (t === "light" || t === "dark")
           document.documentElement.dataset.theme = t;
+        // A saved sign-in shows a loading screen, not the password form, while it's checked.
+        if (localStorage.getItem("reunion-session"))
+          document.documentElement.classList.add("checking");
       } catch (e) {}
     </script>
-    <link rel="stylesheet" href="/style.css?v=2026-10-11.8" />
+    <link rel="stylesheet" href="/style.css?v=2026-10-11.9" />
   </head>
   <body class="locked">
     <section id="login-screen">
+      <div id="splash" class="login-card splash" role="status">
+        <span class="brand-mark big" aria-hidden="true"></span>
+        <h1>’Dega, baby.</h1>
+        <p id="splash-text">Loading your plans…</p>
+        <button id="splash-retry" class="button primary wide" type="button" hidden>Try again</button>
+      </div>
       <form id="login-form" class="login-card">
         <span class="brand-mark big" aria-hidden="true"></span>
         <h1>’Dega, baby.</h1>
@@ -249,6 +258,6 @@
       </div>
     </dialog>
     <div id="toast" popover="manual" role="status" aria-live="polite"></div>
-    <script type="module" src="/app.mjs?v=2026-10-11.8"></script>
+    <script type="module" src="/app.mjs?v=2026-10-11.9"></script>
   </body>
 </html>
