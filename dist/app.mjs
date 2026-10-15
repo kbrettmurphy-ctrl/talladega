@@ -708,6 +708,22 @@ function designSheet(id) {
   });
 }
 
+function votersSheet(id) {
+  const c = candidates().find((x) => x.id === id);
+  if (!c) return;
+  const names = votes()
+    .filter((v) => v.candidate === id)
+    .map((v) => v.voter)
+    .sort((a, b) => a.localeCompare(b));
+  sheet({
+    title: c.caption || "Design",
+    body: group(
+      plural(names.length, "vote"),
+      `<div class="list">${names.map((n) => row({ title: isMe(n) ? `${n} (you)` : n })).join("") || note("No votes yet.")}</div>`,
+    ),
+  });
+}
+
 async function castVote(id) {
   if (!me) {
     toast("Tell us who you are first, so your vote counts once.");
@@ -1167,7 +1183,7 @@ function renderCandidates() {
             <button type="button" class="candidate-pic" data-candidate="${i}" aria-label="View ${esc(c.caption || `design ${i + 1}`)}"><img alt="" data-candidate-img="${esc(c.id)}" ${url ? `src="${url}" class="ready"` : ""}>${leading ? '<span class="candidate-badge">Leading</span>' : ""}</button>
             <div class="candidate-info">
               <button type="button" class="candidate-name" data-edit-design="${esc(c.id)}" aria-label="Edit ${esc(c.caption || `design ${i + 1}`)}"><span class="row-title">${esc(c.caption || `Design ${i + 1}`)}</span><span class="link">Edit</span></button>
-              <span class="row-sub" title="${esc(voters.join(", "))}">${voters.length ? `${plural(voters.length, "vote")} · ${esc(voters.join(", "))}` : "No votes yet"}</span>
+              ${voters.length ? `<button type="button" class="vote-count" data-voters="${esc(c.id)}">${plural(voters.length, "vote")} ›</button>` : '<span class="row-sub">No votes yet</span>'}
             </div>
             <button type="button" class="vote-button" data-vote="${esc(c.id)}" aria-pressed="${picked}">${picked ? "✓ Your vote" : "Vote"}</button>
           </div>`;
@@ -1462,6 +1478,7 @@ document.addEventListener("click", (e) => {
   else if ("addCandidates" in d) candidateSheet();
   else if (d.vote) run(t, () => castVote(d.vote));
   else if (d.editDesign) designSheet(d.editDesign);
+  else if (d.voters) votersSheet(d.voters);
   else if (d.albumYear) setAlbumYear(Number(d.albumYear));
   else if (d.deleteMessage) {
     if (confirm("Delete this message for everyone?"))
