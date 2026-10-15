@@ -823,13 +823,6 @@ input[type="file"]::file-selector-button {
 .candidate-name .link {
   flex-shrink: 0;
 }
-.candidate-info .row-sub {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-}
 .vote-button {
   margin: 10px 12px 12px;
   min-height: 36px;
