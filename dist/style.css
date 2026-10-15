@@ -808,6 +808,21 @@ input[type="file"]::file-selector-button {
   min-width: 0;
   padding: 10px 12px 0;
 }
+.candidate-name {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+}
+.candidate-name .row-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.candidate-name .link {
+  flex-shrink: 0;
+}
 .candidate-info .row-sub {
   display: -webkit-box;
   overflow: hidden;

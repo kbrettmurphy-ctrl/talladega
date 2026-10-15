@@ -45,3 +45,8 @@ test('votes can be taken back, and removing a design removes its votes',async()=
   assert.equal((await call('delete','DELETE',undefined,'&id=c2')).status,200);
   assert.deepEqual(tally(),[]);
 });
+test('designs can be renamed without losing their photo or candidate flag',async()=>{
+  assert.equal((await call('save','POST',{kind:'photo',id:'c1',data:{caption:'  Checkered flag v2 '}})).status,200);
+  assert.deepEqual(rows.get('c1').data,{path:'2099/c1.jpg',caption:'Checkered flag v2',candidate:true});
+  assert.equal((await call('save','POST',{kind:'photo',id:'nope',data:{caption:'x'}})).status,400);
+});
