@@ -24,6 +24,7 @@ function clean(kind:string,d:any,year:number){
  if(kind==='shirt'){const hex=text(d.hex??'',7),photo=text(d.photo??'',80);if(hex&&!/^#[0-9a-fA-F]{6}$/.test(hex))throw new Error('Use a color code like #1A4FD6.');if(!/^[\w-]*$/.test(photo))throw new Error('Invalid photo.');return {color:text(d.color,100),hex:hex.toUpperCase(),photo,notes:text(d.notes,3000)};}
  if(kind==='person'){const size=text(d.size,30);if(!sizeNames.includes(size))throw new Error('Choose a listed shirt size.');return {name:text(d.name,100,true),family:text(d.family,100,true),size,diet:text(d.diet,300)};}
  if(kind==='meal'){if(d.included!==undefined&&typeof d.included!=='boolean')throw new Error('Invalid meal selection.');return {slot:text(d.slot,30,true),family:text(d.family,100),menu:text(d.menu,1000),included:d.included??true,by:text(d.by??'',100)};}
+ if(kind==='vote')return {voter:text(d.voter,100,true),candidate:text(d.candidate,80,true)};
  if(kind==='message')return {author:text(d.author,100,true),text:text(d.text,3000,true),created:new Date().toISOString()};
  throw new Error('Unsupported record.');
 }
@@ -62,13 +63,18 @@ Deno.serve(async(req:Request)=>{
   if(action==='save'&&req.method==='POST'){
    const raw=await req.text();if(raw.length>16000)return reply({error:'Request too large.'},413);
    const body=JSON.parse(raw);const kind=text(body.kind,20,true);const data=clean(kind,body.data,year);
-   const id=kind==='trip'||kind==='shirt'?year+'-'+kind:kind==='meal'?year+'-meal-'+(data as any).slot:text(body.id,80,true);
+   // One vote per name per year: the record ID comes from the voter's name, so voting again replaces it.
+   const id=kind==='trip'||kind==='shirt'?year+'-'+kind:kind==='meal'?year+'-meal-'+(data as any).slot:kind==='vote'?year+'-vote-'+hex(await crypto.subtle.digest('SHA-256',enc.encode((data as any).voter.toLowerCase()))).slice(0,24):text(body.id,80,true);
    if(!/^[a-zA-Z0-9_-]+$/.test(id))throw new Error('Invalid record ID.');
    if(kind==='meal'){
     const [trip]=await db('reunion_records?id=eq.'+year+'-trip&select=data');
     const start=trip?.data?.start;if(!start)throw new Error('Set trip dates first.');
     const slots=allMealSlots(start,tripEnd(trip.data)).map(s=>s.id);
     if(!slots.includes((data as any).slot))throw new Error('This meal does not belong to the current trip dates.');
+   }
+   if(kind==='vote'){
+    const [pick]=await db('reunion_records?year=eq.'+year+'&kind=eq.photo&id=eq.'+encodeURIComponent((data as any).candidate)+'&select=data');
+    if(!pick?.data?.candidate)throw new Error('That design is no longer up for a vote.');
    }
    const existing=await db('reunion_records?id=eq.'+encodeURIComponent(id)+'&select=year,kind,data');
    if(existing.length&&(existing[0].year!==year||existing[0].kind!==kind))throw new Error('This record belongs to another reunion.');
@@ -80,17 +86,20 @@ Deno.serve(async(req:Request)=>{
   if(action==='delete'&&req.method==='DELETE'){
    const id=text(url.searchParams.get('id'),80,true);
    const [row]=await db('reunion_records?year=eq.'+year+'&id=eq.'+encodeURIComponent(id)+'&select=*');
-   if(!row||!['person','message','photo'].includes(row.kind))return reply({error:'Record not found.'},404);
+   if(!row||!['person','message','photo','vote'].includes(row.kind))return reply({error:'Record not found.'},404);
    if(row.kind==='photo')await service('/storage/v1/object/reunion-photos',{method:'DELETE',headers:jsonHeaders,body:JSON.stringify({prefixes:[row.data.path]})});
-   await db('reunion_records?year=eq.'+year+'&id=eq.'+encodeURIComponent(id),'DELETE');return reply({ok:true});
+   await db('reunion_records?year=eq.'+year+'&id=eq.'+encodeURIComponent(id),'DELETE');
+   if(row.data?.candidate)await db('reunion_records?year=eq.'+year+'&kind=eq.vote&data->>candidate=eq.'+encodeURIComponent(id),'DELETE');
+   return reply({ok:true});
   }
   if(action==='upload'&&req.method==='POST'){
    if(Number(req.headers.get('content-length'))>11*1024*1024)return reply({error:'Photos must be 10 MB or smaller.'},413);
    const form=await req.formData();const file=form.get('file');if(!(file instanceof File)||file.size>10485760||file.size===0||!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Choose a JPEG, PNG or WebP photo up to 10 MB.');
    const caption=text(form.get('caption')||'',200);const id=crypto.randomUUID();const path=year+'/'+id+'.'+({'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[file.type]);
    await service('/storage/v1/object/reunion-photos/'+path,{method:'POST',headers:{'Content-Type':file.type},body:file});
-   const shirt=form.get('purpose')==='shirt';
-   try{await put(id,year,'photo',{path,caption,created:new Date().toISOString(),...(shirt?{shirt:true}:{})});}catch(e){await service('/storage/v1/object/reunion-photos',{method:'DELETE',headers:jsonHeaders,body:JSON.stringify({prefixes:[path]})});throw e;}
+   // Shirt photos and design candidates live outside the album; candidates can be voted on.
+   const purpose=form.get('purpose'),flag=purpose==='shirt'?{shirt:true}:purpose==='candidate'?{candidate:true}:{};
+   try{await put(id,year,'photo',{path,caption,created:new Date().toISOString(),...flag});}catch(e){await service('/storage/v1/object/reunion-photos',{method:'DELETE',headers:jsonHeaders,body:JSON.stringify({prefixes:[path]})});throw e;}
    return reply({ok:true,id});
   }
   if(action==='photo'&&req.method==='GET'){

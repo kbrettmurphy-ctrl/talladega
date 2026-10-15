@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="build" content="2026-10-11.9" />
+    <meta name="build" content="2026-10-15.1" />
     <meta
       name="viewport"
       content="width=device-width,initial-scale=1,viewport-fit=cover"
@@ -23,7 +23,7 @@
           document.documentElement.classList.add("checking");
       } catch (e) {}
     </script>
-    <link rel="stylesheet" href="/style.css?v=2026-10-11.9" />
+    <link rel="stylesheet" href="/style.css?v=2026-10-15.1" />
   </head>
   <body class="locked">
     <section id="login-screen">
@@ -173,6 +173,14 @@
             <div class="list" id="shirt-plan"></div>
           </div>
           <div class="group">
+            <div class="group-head">
+              <h2>Design vote</h2>
+              <button class="link" type="button" data-add-candidates>Add designs</button>
+            </div>
+            <div id="candidate-list" class="candidate-grid"></div>
+            <p class="group-foot" id="candidate-foot"></p>
+          </div>
+          <div class="group">
             <div class="group-head"><h2>Order</h2></div>
             <div class="list">
               <div id="shirt-totals"></div>
@@ -258,6 +266,6 @@
       </div>
     </dialog>
     <div id="toast" popover="manual" role="status" aria-live="polite"></div>
-    <script type="module" src="/app.mjs?v=2026-10-11.9"></script>
+    <script type="module" src="/app.mjs?v=2026-10-15.1"></script>
   </body>
 </html>

@@ -63,7 +63,7 @@ let albumYear = null,
   albumRecords = [],
   albumSequence = 0,
   viewerIndex = -1,
-  viewerShirt = false;
+  viewerMode = "album"; // album | shirt | candidates
 const photoURLs = new Map(),
   readyURLs = new Map();
 let weatherCache,
@@ -140,9 +140,11 @@ const crews = () =>
     .sort((a, b) => a.localeCompare(b));
 const isMe = (name) =>
   !!me && String(name).trim().toLowerCase() === me.name.trim().toLowerCase();
+// Shirt photos and design candidates are stored as photos but stay out of the album.
+const inAlbum = (p) => !p.shirt && !p.candidate;
 const albumPhotos = () =>
   dataOf("photo", albumRecords)
-    .filter((p) => !p.shirt)
+    .filter(inAlbum)
     .sort((a, b) => (a.created || "").localeCompare(b.created || ""));
 const shirtPlan = () =>
   dataOf("shirt")[0] || { color: "", hex: "", photo: "", notes: "" };
@@ -150,9 +152,23 @@ const shirtPhoto = () => {
   const id = shirtPlan().photo;
   return id ? dataOf("photo").find((p) => p.id === id) : null;
 };
+const candidates = () =>
+  dataOf("photo")
+    .filter((p) => p.candidate)
+    .sort((a, b) => (a.created || "").localeCompare(b.created || ""));
+// Votes for designs that were since removed don't count.
+const votes = () => {
+  const ids = new Set(candidates().map((c) => c.id));
+  return dataOf("vote").filter((v) => ids.has(v.candidate));
+};
+const myVote = () => votes().find((v) => isMe(v.voter));
 const viewerList = () =>
-  viewerShirt ? [shirtPhoto()].filter(Boolean) : albumPhotos();
-const viewerYear = () => (viewerShirt ? year : albumYear);
+  viewerMode === "shirt"
+    ? [shirtPhoto()].filter(Boolean)
+    : viewerMode === "candidates"
+      ? candidates()
+      : albumPhotos();
+const viewerYear = () => (viewerMode === "album" ? albumYear : year);
 // Accepts #RGB, #RRGGBB, or "r, g, b" (0-255) and returns #RRGGBB, or '' when it can't be read.
 function parseColor(input) {
   const v = String(input).trim();
@@ -642,6 +658,55 @@ function shirtSheet() {
       .catch(() => {});
 }
 
+function candidateSheet() {
+  sheet({
+    title: "Add designs",
+    save: "Upload",
+    body: `<div class="list">
+      <label class="field"><span>Name</span><input name="caption" maxlength="200" placeholder="Optional, e.g. Checkered flag"></label>
+      <label class="field"><span>Designs</span><input name="files" type="file" accept="${photoAccept}" multiple required></label>
+    </div><p class="group-foot">Mockups, sketches, or photos of samples. Each one becomes a choice everyone can vote on.</p>`,
+    onSave: async (f) => {
+      const files = [...f.elements.files.files],
+        button = $(".strong", f);
+      let done = 0;
+      try {
+        for (const file of files) {
+          button.textContent = `${done + 1} of ${files.length}…`;
+          const body = new FormData();
+          body.append("file", await preparePhoto(file));
+          body.append("caption", f.elements.caption.value);
+          body.append("purpose", "candidate");
+          await api("upload", { method: "POST", body });
+          done++;
+        }
+      } finally {
+        button.textContent = "Upload";
+        await load();
+      }
+      toast(`${plural(done, "design")} added to the vote.`);
+    },
+  });
+}
+
+async function castVote(id) {
+  if (!me) {
+    toast("Tell us who you are first, so your vote counts once.");
+    whoSheet();
+    return;
+  }
+  const mine = myVote();
+  if (mine?.candidate === id) {
+    await remove(mine.id);
+    await load();
+    toast("Vote taken back.");
+  } else {
+    await put("vote", { voter: me.name, candidate: id });
+    await load();
+    toast(mine ? "Vote changed." : "Vote counted.");
+  }
+}
+
 function yearSheet() {
   const list = [...new Set([...years, year])].sort((a, b) => b - a);
   const form = sheet({
@@ -842,7 +907,7 @@ function renderOverview() {
   const msgs = dataOf("message").sort((a, b) =>
       b.created.localeCompare(a.created),
     ),
-    photos = dataOf("photo").filter((p) => !p.shirt);
+    photos = dataOf("photo").filter(inAlbum);
   const glance = (href, icon, title, value, sub = "", valueCls = "") =>
     `<a class="row nav" href="${href}"><span class="row-icon ${icon}">${icons[icon]}</span><span class="row-main"><span class="row-title">${title}</span>${sub ? `<span class="row-sub one-line">${esc(sub)}</span>` : ""}</span><span class="row-value ${valueCls}">${esc(value)}</span></a>`;
   $("#glance").innerHTML =
@@ -1047,6 +1112,7 @@ function renderShirts() {
         }
       })
       .catch(() => {});
+  renderCandidates();
   $("#shirt-totals").innerHTML = have
     ? sizes
         .filter((s) => totals[s])
@@ -1064,6 +1130,44 @@ function renderShirts() {
           `<div class="row"><span class="row-main"><span class="row-title">${esc(p.name)}</span><span class="row-sub">${esc(p.family)}</span></span><select class="${p.size ? "" : "warn"}" aria-label="Shirt size for ${esc(p.name)}" data-size-for="${esc(p.id)}">${sizeOptions(p.size)}</select></div>`,
       )
       .join("") || note("Everyone’s sizes will show up here.");
+}
+
+function renderCandidates() {
+  const list = candidates(),
+    all = votes(),
+    mine = myVote(),
+    top = Math.max(0, ...list.map((c) => all.filter((v) => v.candidate === c.id).length));
+  $("#candidate-list").innerHTML = list.length
+    ? list
+        .map((c, i) => {
+          const voters = all.filter((v) => v.candidate === c.id).map((v) => v.voter),
+            picked = mine?.candidate === c.id,
+            leading = top > 0 && voters.length === top,
+            url = readyURLs.get(c.id);
+          return `<div class="candidate${picked ? " picked" : ""}">
+            <button type="button" class="candidate-pic" data-candidate="${i}" aria-label="View ${esc(c.caption || `design ${i + 1}`)}"><img alt="" data-candidate-img="${esc(c.id)}" ${url ? `src="${url}" class="ready"` : ""}>${leading ? '<span class="candidate-badge">Leading</span>' : ""}</button>
+            <div class="candidate-info">
+              <span class="row-title">${esc(c.caption || `Design ${i + 1}`)}</span>
+              <span class="row-sub" title="${esc(voters.join(", "))}">${voters.length ? `${plural(voters.length, "vote")} · ${esc(voters.join(", "))}` : "No votes yet"}</span>
+            </div>
+            <button type="button" class="vote-button" data-vote="${esc(c.id)}" aria-pressed="${picked}">${picked ? "✓ Your vote" : "Vote"}</button>
+          </div>`;
+        })
+        .join("")
+    : empty("No designs yet. Add a few and let everyone vote.", "Add designs", "data-add-candidates");
+  $("#candidate-foot").textContent = list.length
+    ? me
+      ? "One vote each. Tap your vote again to take it back, or vote for another design to switch."
+      : "Set “Who’s this?” in Settings so your vote counts once."
+    : "";
+  $$("[data-candidate-img]:not(.ready)").forEach((img) =>
+    photoURL(img.dataset.candidateImg, year)
+      .then((url) => {
+        img.onload = () => img.classList.add("ready");
+        img.src = url;
+      })
+      .catch(() => img.closest(".candidate-pic")?.classList.add("failed")),
+  );
 }
 
 function when(iso) {
@@ -1203,10 +1307,10 @@ function renderAlbum(loading = false) {
   $$("img:not(.ready)", grid).forEach((img) => thumbObserver.observe(img));
 }
 
-function openViewer(i, shirt = false) {
+function openViewer(i, mode = "album") {
   viewerIndex = i;
-  viewerShirt = shirt;
-  $("#viewer-delete").hidden = shirt;
+  viewerMode = mode;
+  $("#viewer-delete").hidden = mode === "shirt";
   showViewerPhoto();
   if (!$("#viewer").open) $("#viewer").showModal();
 }
@@ -1334,7 +1438,10 @@ document.addEventListener("click", (e) => {
   else if ("editShirt" in d) shirtSheet();
   else if ("addPhotos" in d) uploadSheet();
   else if (d.photo) openViewer(Number(d.photo));
-  else if ("shirtPhoto" in d) openViewer(0, true);
+  else if ("shirtPhoto" in d) openViewer(0, "shirt");
+  else if (d.candidate) openViewer(Number(d.candidate), "candidates");
+  else if ("addCandidates" in d) candidateSheet();
+  else if (d.vote) run(t, () => castVote(d.vote));
   else if (d.albumYear) setAlbumYear(Number(d.albumYear));
   else if (d.deleteMessage) {
     if (confirm("Delete this message for everyone?"))
@@ -1442,6 +1549,21 @@ $(".viewer-stage").addEventListener("touchend", (e) => {
   if (Math.abs(dx) > 50) stepViewer(dx < 0 ? 1 : -1);
 });
 $("#viewer-delete").onclick = (e) => {
+  if (viewerMode === "candidates") {
+    const c = candidates()[viewerIndex];
+    if (!c || !confirm("Remove this design and its votes for everyone?")) return;
+    run(e.currentTarget, async () => {
+      await remove(c.id);
+      await load();
+      toast("Design removed.");
+      if (!candidates().length) $("#viewer").close();
+      else {
+        viewerIndex = Math.min(viewerIndex, candidates().length - 1);
+        showViewerPhoto();
+      }
+    });
+    return;
+  }
   const p = albumPhotos()[viewerIndex];
   if (!p || !confirm("Delete this photo for everyone?")) return;
   run(e.currentTarget, async () => {

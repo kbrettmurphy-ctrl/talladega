@@ -4,7 +4,7 @@ create table public.reunion_access (id integer primary key check(id=1), salt tex
 create table public.reunion_records (
   id text primary key,
   year integer not null check(year between 2000 and 2100),
-  kind text not null check(kind in ('trip','person','meal','shirt','message','photo')),
+  kind text not null check(kind in ('trip','person','meal','shirt','message','photo','vote')),
   data jsonb not null default '{}',
   updated_at timestamptz not null default now()
 );

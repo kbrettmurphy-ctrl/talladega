@@ -744,6 +744,93 @@ input[type="file"]::file-selector-button {
   object-fit: cover;
   background: var(--fill);
 }
+.candidate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.candidate-grid > .empty {
+  grid-column: 1/-1;
+  margin: 0;
+}
+.candidate {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: inset 0 0 0 2px transparent;
+  transition: box-shadow 0.2s;
+}
+.candidate.picked {
+  box-shadow: inset 0 0 0 2px var(--tint);
+}
+.candidate-pic {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  background: var(--fill);
+}
+.candidate-pic img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.candidate-pic img.ready {
+  opacity: 1;
+}
+.candidate-pic.failed {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--fill) 0 8px,
+    transparent 0 16px
+  );
+}
+.candidate-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--brand-yellow);
+  color: var(--on-caution);
+  font-size: 12px;
+  font-weight: 600;
+}
+.candidate-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px 0;
+}
+.candidate-info .row-sub {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+.vote-button {
+  margin: 10px 12px 12px;
+  min-height: 36px;
+  border-radius: 9px;
+  background: var(--fill);
+  color: var(--tint);
+  font-size: 15px;
+  font-weight: 600;
+}
+.vote-button[aria-pressed="true"] {
+  background: var(--tint);
+  color: #fff;
+}
+.vote-button:disabled {
+  opacity: 0.5;
+}
 .row-switch {
   display: flex;
   align-items: center;
